@@ -1,27 +1,33 @@
 # OneSignal MCP Server
 
-A Model Context Protocol (MCP) server for interacting with the OneSignal API. This server provides a convenient interface for managing push notifications, emails, SMS, user devices, segments, templates, and more through OneSignal's REST API.
+A comprehensive Model Context Protocol (MCP) server for interacting with the OneSignal API. This server provides a complete interface for managing push notifications, emails, SMS, users, devices, segments, templates, analytics, and more through OneSignal's REST API.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)](https://github.com/weirdbrains/onesignal-mcp)
+[![Version](https://img.shields.io/badge/version-2.0.0-blue.svg)](https://github.com/weirdbrains/onesignal-mcp)
+[![Tools](https://img.shields.io/badge/tools-57-green.svg)](https://github.com/weirdbrains/onesignal-mcp)
 
 ## Overview
 
-This MCP server wraps the [OneSignal REST API](https://documentation.onesignal.com/reference/rest-api-overview) to provide a set of tools for managing your OneSignal applications and sending messages to your users. It supports all major OneSignal operations including:
+This MCP server provides comprehensive access to the [OneSignal REST API](https://documentation.onesignal.com/reference/rest-api-overview), offering **57 tools** that cover all major OneSignal operations:
 
-- Sending push notifications, emails, and SMS
-- Managing user devices and subscriptions
-- Creating and managing segments
-- Creating and managing templates
-- Viewing app information and analytics
-- Organization-level operations
-- **Managing multiple OneSignal applications**
+### 🚀 Key Features
+
+- **Multi-channel Messaging**: Send push notifications, emails, SMS, and transactional messages
+- **User & Device Management**: Complete CRUD operations for users, devices, and subscriptions
+- **Advanced Segmentation**: Create and manage user segments with complex filters
+- **Template System**: Create, update, and manage message templates
+- **iOS Live Activities**: Full support for iOS Live Activities
+- **Analytics & Export**: View outcomes data and export to CSV
+- **Multi-App Support**: Manage multiple OneSignal applications seamlessly
+- **API Key Management**: Create, update, rotate, and delete API keys
+- **Organization-level Operations**: Manage apps across your entire organization
 
 ## Requirements
 
 - Python 3.7 or higher
 - `python-dotenv` package
 - `requests` package
+- `mcp` package
 - OneSignal account with API credentials
 
 ## Installation
@@ -53,12 +59,22 @@ pip install onesignal-mcp
    
    # Organization API key (for org-level operations)
    ONESIGNAL_ORG_API_KEY=your_organization_api_key_here
+   
+   # Optional: Multiple app configurations
+   ONESIGNAL_MANDIBLE_APP_ID=mandible_app_id
+   ONESIGNAL_MANDIBLE_API_KEY=mandible_api_key
+   
+   ONESIGNAL_WEIRDBRAINS_APP_ID=weirdbrains_app_id
+   ONESIGNAL_WEIRDBRAINS_API_KEY=weirdbrains_api_key
+   
+   # Logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
+   LOG_LEVEL=INFO
    ```
 
-2. You can find your OneSignal credentials in your OneSignal dashboard:
-   - App ID: Settings > Keys & IDs > OneSignal App ID
-   - REST API Key: Settings > Keys & IDs > REST API Key
-   - Organization API Key: Organization Settings > API Keys
+2. Find your OneSignal credentials:
+   - **App ID**: Settings > Keys & IDs > OneSignal App ID
+   - **REST API Key**: Settings > Keys & IDs > REST API Key
+   - **Organization API Key**: Organization Settings > API Keys
 
 ## Usage
 
@@ -68,197 +84,220 @@ pip install onesignal-mcp
 python onesignal_server.py
 ```
 
-The server will start and register itself with the MCP system, making its tools available for use.
+The server will start and register itself with the MCP system, making all 57 tools available for use.
 
-### Basic Usage Examples
+## Complete Tools Reference (57 Tools)
 
-#### Sending a Push Notification
+### 📱 App Management (5 tools)
+- `list_apps` - List all configured OneSignal apps
+- `add_app` - Add a new OneSignal app configuration locally
+- `update_local_app_config` - Update an existing local app configuration
+- `remove_app` - Remove a local OneSignal app configuration
+- `switch_app` - Switch the current app to use for API requests
+
+### 📨 Messaging (8 tools)
+- `send_push_notification` - Send a push notification
+- `send_email` - Send an email through OneSignal
+- `send_sms` - Send an SMS/MMS through OneSignal
+- `send_transactional_message` - Send immediate delivery messages
+- `view_messages` - View recent messages sent
+- `view_message_details` - Get detailed information about a message
+- `view_message_history` - View message history/recipients
+- `cancel_message` - Cancel a scheduled message
+
+### 📱 Devices/Players (6 tools)
+- `view_devices` - View devices subscribed to your app
+- `view_device_details` - Get detailed information about a device
+- `add_player` - Add a new player/device
+- `edit_player` - Edit an existing player/device
+- `delete_player` - Delete a player/device record
+- `edit_tags_with_external_user_id` - Bulk edit tags by external ID
+
+### 🎯 Segments (3 tools)
+- `view_segments` - List all segments
+- `create_segment` - Create a new segment
+- `delete_segment` - Delete a segment
+
+### 📄 Templates (6 tools)
+- `view_templates` - List all templates
+- `view_template_details` - Get template details
+- `create_template` - Create a new template
+- `update_template` - Update an existing template
+- `delete_template` - Delete a template
+- `copy_template_to_app` - Copy template to another app
+
+### 🏢 Apps (6 tools)
+- `view_app_details` - Get details about configured app
+- `view_apps` - List all organization apps
+- `create_app` - Create a new OneSignal application
+- `update_app` - Update an existing application
+- `view_app_api_keys` - View API keys for an app
+- `create_app_api_key` - Create a new API key
+
+### 🔑 API Key Management (3 tools)
+- `delete_app_api_key` - Delete an API key
+- `update_app_api_key` - Update an API key
+- `rotate_app_api_key` - Rotate an API key
+
+### 👤 Users (6 tools)
+- `create_user` - Create a new user
+- `view_user` - View user details
+- `update_user` - Update user information
+- `delete_user` - Delete a user
+- `view_user_identity` - Get user identity information
+- `view_user_identity_by_subscription` - Get identity by subscription
+
+### 🏷️ Aliases (3 tools)
+- `create_or_update_alias` - Create or update user alias
+- `delete_alias` - Delete a user alias
+- `create_alias_by_subscription` - Create alias by subscription ID
+
+### 📬 Subscriptions (5 tools)
+- `create_subscription` - Create a new subscription
+- `update_subscription` - Update a subscription
+- `delete_subscription` - Delete a subscription
+- `transfer_subscription` - Transfer subscription between users
+- `unsubscribe_email` - Unsubscribe using email token
+
+### 🎯 Live Activities (3 tools)
+- `start_live_activity` - Start iOS Live Activity
+- `update_live_activity` - Update iOS Live Activity
+- `end_live_activity` - End iOS Live Activity
+
+### 📊 Analytics & Export (3 tools)
+- `view_outcomes` - View outcomes/conversion data
+- `export_players_csv` - Export player data to CSV
+- `export_messages_csv` - Export messages to CSV
+
+## Usage Examples
+
+### Multi-Channel Messaging
 
 ```python
-# Send a notification to all subscribed users
-result = await send_notification(
+# Send a push notification
+await send_push_notification(
     title="Hello World",
     message="This is a test notification",
-    segment="Subscribed Users"
+    segments=["Subscribed Users"]
 )
-print(result)
+
+# Send an email
+await send_email(
+    subject="Welcome!",
+    body="Thank you for joining us",
+    email_body="<html><body><h1>Welcome!</h1></body></html>",
+    include_emails=["user@example.com"]
+)
+
+# Send an SMS
+await send_sms(
+    message="Your verification code is 12345",
+    phone_numbers=["+15551234567"]
+)
+
+# Send a transactional message
+await send_transactional_message(
+    channel="email",
+    content={"subject": "Order Confirmation", "body": "Your order has been confirmed"},
+    recipients={"include_external_user_ids": ["user123"]}
+)
 ```
 
-#### Working with Multiple Apps
+### User and Device Management
 
 ```python
-# Add a new app configuration
-await add_app(
-    key="my_second_app", 
-    app_id="second-app-id", 
-    api_key="second-app-api-key", 
-    name="My Second App"
+# Create a user
+user = await create_user(
+    name="John Doe",
+    email="john@example.com",
+    external_id="user123",
+    tags={"plan": "premium", "joined": "2024-01-01"}
 )
 
-# List all configured apps
-apps = await list_apps()
-print(apps)
-
-# Switch to the new app
-await switch_app("my_second_app")
-
-# Send a notification using the current app
-await send_notification(
-    title="Hello", 
-    message="This is from my second app"
+# Add a device
+device = await add_player(
+    device_type=1,  # Android
+    identifier="device_token_here",
+    language="en",
+    tags={"app_version": "1.0.0"}
 )
 
-# Send a notification from a specific app (without switching)
-await send_notification(
-    title="Hello", 
-    message="This is from my first app", 
-    app_key="mandible"
+# Update user tags across all devices
+await edit_tags_with_external_user_id(
+    external_user_id="user123",
+    tags={"last_active": "2024-01-15", "purchases": "5"}
 )
 ```
 
-#### Managing Segments
+### iOS Live Activities
 
 ```python
-# List all segments
-segments = await view_segments()
-print(segments)
-
-# Create a new segment
-result = await create_segment(
-    name="High Value Users",
-    filters='[{"field":"amount_spent", "relation":">", "value":"100"}]'
+# Start a Live Activity
+await start_live_activity(
+    activity_id="delivery_123",
+    push_token="live_activity_push_token",
+    subscription_id="user_subscription_id",
+    activity_attributes={"order_number": "12345"},
+    content_state={"status": "preparing", "eta": "15 mins"}
 )
-print(result)
+
+# Update the Live Activity
+await update_live_activity(
+    activity_id="delivery_123",
+    name="delivery_update",
+    event="update",
+    content_state={"status": "on_the_way", "eta": "5 mins"}
+)
 ```
 
-#### Working with Templates
+### Analytics and Export
 
 ```python
-# Create an email template
-result = await create_template(
-    name="Welcome Email",
-    title="Welcome to Our App",
-    message="<html><body><h1>Welcome!</h1><p>Thank you for joining us.</p></body></html>",
-    template_type="email"
+# View conversion outcomes
+outcomes = await view_outcomes(
+    outcome_names=["purchase", "session_duration"],
+    outcome_time_range="7d",
+    outcome_platforms=["ios", "android"]
 )
-print(result)
+
+# Export player data
+export = await export_players_csv(
+    start_date="2024-01-01T00:00:00Z",
+    end_date="2024-01-31T23:59:59Z",
+    segment_names=["Active Users"]
+)
 ```
-
-## Multi-App Support
-
-This server supports managing multiple OneSignal applications. You can:
-
-1. Add multiple app configurations with different identifiers
-2. Switch between apps when making API calls
-3. Specify which app to use for individual operations
-
-### App Management Tools
-
-- `list_apps`: List all configured OneSignal apps in the server
-- `add_app`: Add a new OneSignal app configuration
-- `update_app`: Update an existing OneSignal app configuration
-- `remove_app`: Remove an OneSignal app configuration
-- `switch_app`: Switch the current app to use for API requests
-
-## Available Tools
-
-### Message Management
-
-- `send_notification`: Send a new push notification, email, or SMS
-- `view_messages`: List recent messages sent through OneSignal
-- `view_message_details`: Get detailed information about a specific message
-- `cancel_message`: Cancel a scheduled message
-
-### Device Management
-
-- `view_devices`: List devices (users) registered in your OneSignal app
-- `view_device_details`: Get detailed information about a specific device
-
-### Segment Management
-
-- `view_segments`: List all segments available in your OneSignal app
-- `create_segment`: Create a new segment with specified filters
-- `delete_segment`: Delete an existing segment
-
-### Template Management
-
-- `view_templates`: List all templates available in your OneSignal app
-- `view_template_details`: Get detailed information about a specific template
-- `create_template`: Create a new template for notifications or emails
-
-### App Information
-
-- `view_app_details`: Get detailed information about the configured OneSignal app
-
-## Logging
-
-The server includes comprehensive logging to help with debugging and monitoring. Logs are output to the console by default, with the following format:
-
-```
-YYYY-MM-DD HH:MM:SS - onesignal-mcp - LEVEL - Message
-```
-
-You can adjust the logging level by modifying the `logging.basicConfig` call in the server file.
 
 ## Testing
 
-The OneSignal MCP server includes a comprehensive test suite to ensure all functionality works as expected. The tests use Python's built-in `unittest` framework and mock external API calls to test the server's behavior.
-
-### Running Tests
-
-To run the tests, use the following command:
+The server includes a comprehensive test suite. To run tests:
 
 ```bash
+# Run the test script
+python test_onesignal_mcp.py
+
+# Or use unittest
 python -m unittest discover tests
 ```
 
-This will discover and run all tests in the `tests` directory.
+## Error Handling
 
-### Test Coverage
+The server provides consistent error handling:
+- All errors are returned in a standardized format
+- Detailed error messages help identify issues
+- Automatic retry logic for transient failures
+- Proper authentication error messages
 
-The test suite covers:
-- App configuration management
-- API request handling with proper authentication
-- Error handling and recovery
-- Multiple app support
-- Organization-level operations
+## Rate Limiting
 
-### Writing New Tests
-
-If you add new functionality to the server, please also add corresponding tests. Tests should be placed in the `tests` directory and follow the naming convention `test_*.py`.
-
-## Troubleshooting
-
-### Common Issues
-
-#### No App Configuration Available
-
-If you see the error "No app configuration available", make sure you have:
-1. Set up your `.env` file with the correct credentials, or
-2. Added an app configuration using the `add_app` tool
-
-#### API Key Errors
-
-If you receive authentication errors, verify that:
-1. Your API keys are correct
-2. You're using the right key for the operation (REST API Key vs Organization API Key)
-3. The key has the necessary permissions in OneSignal
-
-#### Rate Limiting
-
-OneSignal has rate limits for API requests. If you encounter rate limiting:
-1. Reduce the frequency of your requests
-2. Implement retry logic with exponential backoff
-
-### Getting Help
-
-If you encounter issues not covered here:
-1. Check the [OneSignal API Documentation](https://documentation.onesignal.com/reference)
-2. Open an issue on the GitHub repository
+OneSignal enforces rate limits on API requests:
+- Standard limit: 10 requests per second
+- Bulk operations: May have lower limits
+- The server includes guidance on handling rate limits
 
 ## Contributing
 
-We welcome contributions to improve the OneSignal MCP server! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 
 ## License
 
@@ -266,5 +305,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## Acknowledgements
 
-- [OneSignal](https://onesignal.com/) for their excellent notification service and API
-- The Weirdbrains team for supporting this project
+- [OneSignal](https://onesignal.com/) for their excellent notification service
+- The MCP community for the Model Context Protocol
+- All contributors to this project
