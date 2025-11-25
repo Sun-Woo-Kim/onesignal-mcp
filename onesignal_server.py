@@ -229,11 +229,12 @@ async def make_onesignal_request(
     if not use_org_key and app_config:
         if params is None:
             params = {}
-        if "app_id" not in params and not endpoint.startswith("apps/"):
+        # For GET and DELETE requests, add app_id to query parameters
+        if "app_id" not in params and not endpoint.startswith("apps/") and method in ["GET", "DELETE"]:
             params["app_id"] = app_config.app_id
         
-        # For POST/PUT requests, add app_id to data if not already present
-        if data is not None and method in ["POST", "PUT"] and "app_id" not in data and not endpoint.startswith("apps/"):
+        # For POST/PUT/PATCH requests, add app_id to data if not already present
+        if data is not None and method in ["POST", "PUT", "PATCH"] and "app_id" not in data and not endpoint.startswith("apps/"):
             data["app_id"] = app_config.app_id
     
     try:
@@ -247,7 +248,7 @@ async def make_onesignal_request(
         elif method == "PUT":
             response = requests.put(url, headers=request_headers, json=data, timeout=30)
         elif method == "DELETE":
-            response = requests.delete(url, headers=request_headers, timeout=30)
+            response = requests.delete(url, headers=request_headers, params=params, timeout=30)
         elif method == "PATCH":
             response = requests.patch(url, headers=request_headers, json=data, timeout=30)
         else:
@@ -682,8 +683,10 @@ async def view_templates() -> str:
     if not app_config:
         return "No app currently selected. Use switch_app to select an app."
     
-    # This endpoint requires app_id in the URL path
-    endpoint = f"apps/{app_config.app_id}/templates"
+    # OneSignal API uses /templates endpoint with app_id as query parameter
+    # The make_onesignal_request function will automatically add app_id to params
+    # since the endpoint doesn't start with "apps/"
+    endpoint = "templates"
     result = await make_onesignal_request(endpoint, method="GET", use_org_key=False)
     
     if "error" in result:
@@ -692,7 +695,11 @@ async def view_templates() -> str:
             return "No templates found."
         return f"Error retrieving templates: {result['error']}"
     
-    templates = result.get("templates", [])
+    # Handle both direct array response and wrapped response
+    if isinstance(result, list):
+        templates = result
+    else:
+        templates = result.get("templates", [])
     
     if not templates:
         return "No templates found."
@@ -718,30 +725,68 @@ async def view_template_details(template_id: str) -> str:
     if not app_config:
         return "No app currently selected. Use switch_app to select an app."
     
-    # Try with app_id in URL path first
-    endpoint = f"apps/{app_config.app_id}/templates/{template_id}"
+    # OneSignal API uses GET /templates/{template_id} with app_id as query parameter
+    # The make_onesignal_request function will automatically add app_id to params
+    # since the endpoint doesn't start with "apps/"
+    endpoint = f"templates/{template_id}"
     result = await make_onesignal_request(endpoint, method="GET", use_org_key=False)
-    
-    # If that fails, try with app_id as query param
-    if "error" in result:
-        params = {"app_id": app_config.app_id}
-        result = await make_onesignal_request(f"templates/{template_id}", method="GET", params=params, use_org_key=False)
     
     if "error" in result:
         return f"Error fetching template details: {result['error']}"
     
-    # Format the template details in a readable way
-    heading = result.get("headings", {}).get("en", "No heading") if isinstance(result.get("headings"), dict) else "No heading"
-    content = result.get("contents", {}).get("en", "No content") if isinstance(result.get("contents"), dict) else "No content"
+    # Helper function to extract text from headings/contents
+    def extract_text(field_value, default="No value"):
+        """Extract text from headings or contents field, handling various formats."""
+        if field_value is None:
+            return default
+        
+        if isinstance(field_value, str):
+            return field_value.strip() if field_value.strip() else default
+        
+        if isinstance(field_value, dict):
+            # Try common language keys in order of preference
+            for lang_key in ["en", "en-US", "en_US", "default"]:
+                if lang_key in field_value:
+                    value = field_value[lang_key]
+                    if value and isinstance(value, str) and value.strip():
+                        return value.strip()
+                    elif value:  # Non-string value
+                        return str(value)
+            
+            # If no common key found, try first non-empty value
+            for key, value in field_value.items():
+                if value:
+                    if isinstance(value, str) and value.strip():
+                        return value.strip()
+                    elif value:
+                        return str(value)
+        
+        return default
+    
+    # Handle headings - check both top-level and nested structures
+    headings = result.get("headings") or result.get("content", {}).get("headings")
+    heading = extract_text(headings, "No heading")
+    
+    # Handle contents - check both top-level and nested structures
+    contents = result.get("contents") or result.get("content", {}).get("contents")
+    content = extract_text(contents, "No content")
     
     details = [
-        f"ID: {result.get('id')}",
-        f"Name: {result.get('name')}",
+        f"ID: {result.get('id', 'N/A')}",
+        f"Name: {result.get('name', 'N/A')}",
         f"Title: {heading}",
         f"Message: {content}",
-        f"Platform: {result.get('platform')}",
-        f"Created: {result.get('created_at')}"
     ]
+    
+    # Add optional fields if present
+    if result.get('platform'):
+        details.append(f"Platform: {result.get('platform')}")
+    if result.get('created_at'):
+        details.append(f"Created: {result.get('created_at')}")
+    if result.get('updated_at'):
+        details.append(f"Updated: {result.get('updated_at')}")
+    if result.get('template_type'):
+        details.append(f"Type: {result.get('template_type')}")
     
     return "\n".join(details)
 
@@ -758,14 +803,15 @@ async def create_template(name: str, title: str, message: str) -> str:
     if not app_config:
         return "No app currently selected. Use switch_app to select an app."
     
+    # OneSignal API uses POST /templates endpoint with app_id in request body
     data = {
+        "app_id": app_config.app_id,
         "name": name,
         "headings": {"en": title},
         "contents": {"en": message}
     }
     
-    # This endpoint requires app_id in the URL path
-    endpoint = f"apps/{app_config.app_id}/templates"
+    endpoint = "templates"
     result = await make_onesignal_request(endpoint, method="POST", data=data, use_org_key=False)
     
     if "error" in result:
@@ -1412,7 +1458,9 @@ async def update_template(template_id: str, name: str = None,
     if not app_config:
         return {"error": "No app currently selected. Use switch_app to select an app."}
     
-    data = {}
+    data = {
+        "app_id": app_config.app_id
+    }
     
     if name:
         data["name"] = name
@@ -1421,17 +1469,13 @@ async def update_template(template_id: str, name: str = None,
     if message:
         data["contents"] = {"en": message}
     
-    if not data:
+    # Check if there are any update parameters besides app_id
+    if len(data) == 1:  # Only app_id present
         return {"error": "No update parameters provided"}
     
-    # Try with app_id in URL path first
-    endpoint = f"apps/{app_config.app_id}/templates/{template_id}"
+    # OneSignal API uses PATCH /templates/{template_id} with app_id in request body
+    endpoint = f"templates/{template_id}"
     result = await make_onesignal_request(endpoint, method="PATCH", data=data, use_org_key=False)
-    
-    # If that fails, try with app_id as query param
-    if "error" in result:
-        params = {"app_id": app_config.app_id}
-        result = await make_onesignal_request(f"templates/{template_id}", method="PATCH", data=data, params=params, use_org_key=False)
     
     return result
 
@@ -1446,14 +1490,11 @@ async def delete_template(template_id: str) -> Dict[str, Any]:
     if not app_config:
         return {"error": "No app currently selected. Use switch_app to select an app."}
     
-    # Try with app_id in URL path first
-    endpoint = f"apps/{app_config.app_id}/templates/{template_id}"
-    result = await make_onesignal_request(endpoint, method="DELETE", use_org_key=False)
-    
-    # If that fails, try with app_id as query param
-    if "error" in result:
-        params = {"app_id": app_config.app_id}
-        result = await make_onesignal_request(f"templates/{template_id}", method="DELETE", params=params, use_org_key=False)
+    # OneSignal API uses DELETE /templates/{template_id} with app_id as query parameter
+    # Explicitly add app_id to params to ensure it's included
+    endpoint = f"templates/{template_id}"
+    params = {"app_id": app_config.app_id}
+    result = await make_onesignal_request(endpoint, method="DELETE", params=params, use_org_key=False)
     
     if "error" not in result:
         return {"success": f"Template '{template_id}' deleted successfully"}
@@ -1473,18 +1514,15 @@ async def copy_template_to_app(template_id: str, target_app_id: str,
     if not app_config:
         return {"error": "No app currently selected. Use switch_app to select an app."}
     
+    # OneSignal API uses POST /templates/{template_id}/copy
+    # The target app_id is included in the request body
     data = {"app_id": target_app_id}
     
     if new_name:
         data["name"] = new_name
     
-    # Try with app_id in URL path first
-    endpoint = f"apps/{app_config.app_id}/templates/{template_id}/copy"
+    endpoint = f"templates/{template_id}/copy"
     result = await make_onesignal_request(endpoint, method="POST", data=data, use_org_key=False)
-    
-    # If that fails, try without app_id in path
-    if "error" in result:
-        result = await make_onesignal_request(f"templates/{template_id}/copy", method="POST", data=data, use_org_key=False)
     
     return result
 
