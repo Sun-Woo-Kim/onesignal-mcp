@@ -79,3 +79,5 @@ if __name__ == "__main__":
 2. Cursor에서 MCP 서버가 연결되었는지 확인
 3. OneSignal 관련 도구들이 사용 가능한지 확인
 
+
+

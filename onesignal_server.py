@@ -666,6 +666,8 @@ async def delete_segment(segment_id: str) -> str:
     if not app_config:
         return "No app currently selected. Use switch_app to select an app."
     
+    # Segments use apps/{app_id}/segments/{segment_id} format
+    # app_id is already in the URL path, so no need for params
     endpoint = f"apps/{app_config.app_id}/segments/{segment_id}"
     result = await make_onesignal_request(endpoint, method="DELETE", use_org_key=False)
     
@@ -1008,7 +1010,10 @@ async def create_user(name: str = None, email: str = None, external_id: str = No
     if not app_config:
         return {"error": "No app currently selected. Use switch_app to select an app."}
     
-    data = {}
+    # Explicitly include app_id in request body for consistency
+    data = {
+        "app_id": app_config.app_id
+    }
     if name:
         data["name"] = name
     if email:
@@ -1049,7 +1054,10 @@ async def update_user(user_id: str, name: str = None, email: str = None, tags: D
     if not app_config:
         return {"error": "No app currently selected. Use switch_app to select an app."}
     
-    data = {}
+    # Explicitly include app_id in request body for consistency
+    data = {
+        "app_id": app_config.app_id
+    }
     if name:
         data["name"] = name
     if email:
@@ -1057,7 +1065,8 @@ async def update_user(user_id: str, name: str = None, email: str = None, tags: D
     if tags:
         data["tags"] = tags
     
-    if not data:
+    # Check if there are any update parameters besides app_id
+    if len(data) == 1:  # Only app_id present
         return {"error": "No update parameters provided"}
     
     result = await make_onesignal_request(f"users/{user_id}", method="PATCH", data=data, use_org_key=False)
@@ -1104,7 +1113,9 @@ async def create_or_update_alias(user_id: str, alias_label: str, alias_id: str) 
     if not app_config:
         return {"error": "No app currently selected. Use switch_app to select an app."}
     
+    # Explicitly include app_id in request body for consistency
     data = {
+        "app_id": app_config.app_id,
         "alias": {
             alias_label: alias_id
         }
@@ -1143,7 +1154,9 @@ async def create_subscription(user_id: str, subscription_type: str, identifier: 
     if not app_config:
         return {"error": "No app currently selected. Use switch_app to select an app."}
     
+    # Explicitly include app_id in request body for consistency
     data = {
+        "app_id": app_config.app_id,
         "subscription": {
             "type": subscription_type,
             "identifier": identifier
@@ -1166,7 +1179,10 @@ async def update_subscription(user_id: str, subscription_id: str, enabled: bool 
     if not app_config:
         return {"error": "No app currently selected. Use switch_app to select an app."}
     
-    data = {}
+    # Explicitly include app_id in request body for consistency
+    data = {
+        "app_id": app_config.app_id
+    }
     if enabled is not None:
         data["enabled"] = enabled
     
@@ -1201,7 +1217,9 @@ async def transfer_subscription(user_id: str, subscription_id: str, new_user_id:
     if not app_config:
         return {"error": "No app currently selected. Use switch_app to select an app."}
     
+    # Explicitly include app_id in request body for consistency
     data = {
+        "app_id": app_config.app_id,
         "new_user_id": new_user_id
     }
     
@@ -1252,11 +1270,15 @@ async def update_subscription_by_token(subscription_token: str, enabled: bool = 
     if not app_config:
         return {"error": "No app currently selected. Use switch_app to select an app."}
     
-    data = {}
+    # Explicitly include app_id in request body for consistency
+    data = {
+        "app_id": app_config.app_id
+    }
     if enabled is not None:
         data["enabled"] = enabled
     
-    if not data:
+    # Check if there are any update parameters besides app_id
+    if len(data) == 1:  # Only app_id present
         return {"error": "No update parameters provided"}
     
     result = await make_onesignal_request(f"subscriptions/{subscription_token}", method="PATCH", data=data, use_org_key=False)
@@ -1290,7 +1312,10 @@ async def create_alias_by_subscription(subscription_id: str, alias_label: str, a
     if not app_config:
         return {"error": "No app currently selected. Use switch_app to select an app."}
     
+    # Explicitly include app_id in request body for consistency
+    # Note: app_id is also in URL path, but including in body for consistency
     data = {
+        "app_id": app_config.app_id,
         "alias": {
             alias_label: alias_id
         }
@@ -1541,7 +1566,13 @@ async def start_live_activity(activity_id: str, push_token: str,
         activity_attributes: Static attributes for the activity
         content_state: Initial dynamic content state
     """
+    app_config = get_current_app()
+    if not app_config:
+        return {"error": "No app currently selected. Use switch_app to select an app."}
+    
+    # Explicitly include app_id in request body for consistency
     data = {
+        "app_id": app_config.app_id,
         "activity_id": activity_id,
         "push_token": push_token,
         "subscription_id": subscription_id,
@@ -1569,7 +1600,13 @@ async def update_live_activity(activity_id: str, name: str, event: str,
         priority: Notification priority (5-10)
         sound: Sound file name for the update
     """
+    app_config = get_current_app()
+    if not app_config:
+        return {"error": "No app currently selected. Use switch_app to select an app."}
+    
+    # Explicitly include app_id in request body for consistency
     data = {
+        "app_id": app_config.app_id,
         "name": name,
         "event": event,
         "content_state": content_state
@@ -1597,7 +1634,13 @@ async def end_live_activity(activity_id: str, subscription_id: str,
         dismissal_date: Unix timestamp for dismissal
         priority: Notification priority (5-10)
     """
+    app_config = get_current_app()
+    if not app_config:
+        return {"error": "No app currently selected. Use switch_app to select an app."}
+    
+    # Explicitly include app_id in request body for consistency
     data = {
+        "app_id": app_config.app_id,
         "subscription_id": subscription_id,
         "event": "end"
     }
