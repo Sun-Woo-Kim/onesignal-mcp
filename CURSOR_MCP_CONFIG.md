@@ -1,18 +1,18 @@
-# Cursor MCP 설정 가이드
+# Cursor MCP Configuration Guide
 
-## MCP 서버 연결 방법
+## MCP Server Connection Method
 
-이 OneSignal MCP 서버는 **stdio 모드**로 실행되므로, Cursor 설정 파일에 명령어를 추가해야 합니다.
+This OneSignal MCP server runs in **stdio mode**, so you need to add the command to the Cursor configuration file.
 
-## 설정 파일 위치
+## Configuration File Location
 
-Cursor의 MCP 설정 파일은 다음 위치에 있습니다:
+The Cursor MCP configuration file is located at:
 - **macOS**: `~/Library/Application Support/Cursor/User/globalStorage/mcp.json`
-- 또는 Cursor 설정에서 직접 추가
+- Or add it directly from Cursor settings
 
-## 설정 예시
+## Configuration Example
 
-Cursor의 MCP 설정 파일(`mcp.json`)에 다음을 추가하세요:
+Add the following to your Cursor MCP configuration file (`mcp.json`):
 
 ```json
 {
@@ -30,7 +30,7 @@ Cursor의 MCP 설정 파일(`mcp.json`)에 다음을 추가하세요:
 }
 ```
 
-또는 상대 경로를 사용하려면:
+Or to use a relative path:
 
 ```json
 {
@@ -50,34 +50,34 @@ Cursor의 MCP 설정 파일(`mcp.json`)에 다음을 추가하세요:
 }
 ```
 
-## .env 파일 설정
+## .env File Configuration
 
-OneSignal API를 사용하려면 프로젝트 루트에 `.env` 파일을 생성하세요:
+To use the OneSignal API, create a `.env` file in the project root:
 
 ```env
 ONESIGNAL_APP_ID=your_app_id
 ONESIGNAL_API_KEY=your_api_key
-ONESIGNAL_ORG_API_KEY=your_org_api_key  # 선택사항
+ONESIGNAL_ORG_API_KEY=your_org_api_key  # Optional
 LOG_LEVEL=INFO
 ```
 
-## HTTP/SSE 모드로 실행 (선택사항)
+## Running in HTTP/SSE Mode (Optional)
 
-HTTP 서버로 실행하려면 코드를 수정하거나 다음과 같이 실행:
+To run as an HTTP server, modify the code or run as follows:
 
 ```python
-# onesignal_server.py 마지막 부분 수정
+# Modify the end of onesignal_server.py
 if __name__ == "__main__":
-    mcp.run(transport="sse")  # 또는 "streamable-http"
+    mcp.run(transport="sse")  # or "streamable-http"
 ```
 
-그러면 `http://localhost:8000`에서 접근 가능합니다.
+Then it will be accessible at `http://localhost:8000`.
 
-## 확인 방법
+## Verification Method
 
-1. Cursor를 재시작하세요
-2. Cursor에서 MCP 서버가 연결되었는지 확인
-3. OneSignal 관련 도구들이 사용 가능한지 확인
+1. Restart Cursor
+2. Check if the MCP server is connected in Cursor
+3. Verify that OneSignal-related tools are available
 
 
 

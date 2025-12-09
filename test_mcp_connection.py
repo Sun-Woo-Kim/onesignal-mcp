@@ -13,96 +13,96 @@ sys.path.insert(0, str(project_root))
 async def test_mcp_server():
     """Test MCP server functionality."""
     print("=" * 60)
-    print("MCP 서버 연결 테스트")
+    print("MCP Server Connection Test")
     print("=" * 60)
     
     try:
         # Import server module
-        print("\n1. 서버 모듈 로드 테스트...")
+        print("\n1. Server Module Load Test...")
         from onesignal_server import mcp
-        print("   ✅ 서버 모듈 로드 성공")
-        print(f"   서버 이름: {mcp.name}")
+        print("   ✅ Server module loaded successfully")
+        print(f"   Server name: {mcp.name}")
         
         # Check if tools are available
-        print("\n2. 도구(Tools) 확인...")
+        print("\n2. Tools Check...")
         try:
-            # FastMCP의 도구 확인 방법
+            # FastMCP tool check method
             if hasattr(mcp, '_tools'):
                 tools = mcp._tools
                 tool_count = len(tools) if tools else 0
-                print(f"   ✅ 도구 개수: {tool_count}")
+                print(f"   ✅ Tool count: {tool_count}")
                 
-                # 일부 도구 이름 출력
+                # Print some tool names
                 if tools:
-                    print("\n   등록된 도구 예시:")
+                    print("\n   Registered tools example:")
                     for i, tool in enumerate(list(tools.values())[:5]):
                         tool_name = getattr(tool, 'name', 'Unknown')
                         print(f"   - {tool_name}")
                     if tool_count > 5:
-                        print(f"   ... 외 {tool_count - 5}개 도구")
+                        print(f"   ... and {tool_count - 5} more tools")
             else:
-                print("   ⚠️  도구 목록에 직접 접근 불가 (정상)")
+                print("   ⚠️  Cannot directly access tool list (normal)")
         except Exception as e:
-            print(f"   ⚠️  도구 확인 중 오류: {e}")
+            print(f"   ⚠️  Error checking tools: {e}")
         
         # Check resources
-        print("\n3. 리소스(Resources) 확인...")
+        print("\n3. Resources Check...")
         try:
             if hasattr(mcp, '_resources'):
                 resources = mcp._resources
                 resource_count = len(resources) if resources else 0
-                print(f"   ✅ 리소스 개수: {resource_count}")
+                print(f"   ✅ Resource count: {resource_count}")
                 if resources:
                     for resource_name in list(resources.keys())[:3]:
                         print(f"   - {resource_name}")
             else:
-                print("   ⚠️  리소스 목록에 직접 접근 불가 (정상)")
+                print("   ⚠️  Cannot directly access resource list (normal)")
         except Exception as e:
-            print(f"   ⚠️  리소스 확인 중 오류: {e}")
+            print(f"   ⚠️  Error checking resources: {e}")
         
         # Check app configuration
-        print("\n4. OneSignal 앱 설정 확인...")
+        print("\n4. OneSignal App Configuration Check...")
         try:
             from onesignal_server import app_configs, get_current_app
             current_app = get_current_app()
             if current_app:
-                print(f"   ✅ 현재 앱: {current_app.name}")
-                print(f"   앱 ID: {current_app.app_id[:8]}...")
+                print(f"   ✅ Current app: {current_app.name}")
+                print(f"   App ID: {current_app.app_id[:8]}...")
             else:
-                print("   ⚠️  앱 설정이 없습니다 (.env 파일 확인 필요)")
+                print("   ⚠️  No app configuration found (check .env file)")
             
             if app_configs:
-                print(f"   ✅ 설정된 앱 개수: {len(app_configs)}")
+                print(f"   ✅ Configured app count: {len(app_configs)}")
                 for key, app in app_configs.items():
                     print(f"   - {key}: {app.name}")
             else:
-                print("   ⚠️  설정된 앱이 없습니다")
+                print("   ⚠️  No apps configured")
         except Exception as e:
-            print(f"   ⚠️  앱 설정 확인 중 오류: {e}")
+            print(f"   ⚠️  Error checking app configuration: {e}")
         
         # Test server can start
-        print("\n5. 서버 실행 가능 여부 확인...")
-        print("   ✅ 서버 모듈이 정상적으로 로드되었습니다")
-        print("   Cursor에서 MCP 서버로 연결할 수 있습니다")
+        print("\n5. Server Execution Check...")
+        print("   ✅ Server module loaded successfully")
+        print("   Can connect to MCP server from Cursor")
         
         print("\n" + "=" * 60)
-        print("✅ 모든 테스트 통과!")
+        print("✅ All tests passed!")
         print("=" * 60)
-        print("\n다음 단계:")
-        print("1. Cursor를 재시작하세요")
-        print("2. Cursor에서 MCP 서버가 연결되었는지 확인하세요")
-        print("3. OneSignal 관련 도구들이 사용 가능한지 테스트하세요")
+        print("\nNext steps:")
+        print("1. Restart Cursor")
+        print("2. Check if the MCP server is connected in Cursor")
+        print("3. Test if OneSignal-related tools are available")
         
         return True
         
     except ImportError as e:
-        print(f"   ❌ 모듈 로드 실패: {e}")
-        print("\n해결 방법:")
-        print("1. 가상환경이 활성화되었는지 확인: source venv/bin/activate")
-        print("2. 필요한 패키지가 설치되었는지 확인: pip install -r requirements.txt")
+        print(f"   ❌ Module load failed: {e}")
+        print("\nTroubleshooting:")
+        print("1. Check if virtual environment is activated: source venv/bin/activate")
+        print("2. Check if required packages are installed: pip install -r requirements.txt")
         return False
     except Exception as e:
-        print(f"   ❌ 오류 발생: {e}")
+        print(f"   ❌ Error occurred: {e}")
         import traceback
         traceback.print_exc()
         return False
