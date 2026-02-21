@@ -11,7 +11,9 @@ PUBLIC_HOST="${PUBLIC_HOST:-}"
 cd "$APP_DIR"
 
 echo "[1/5] Service status"
-sudo systemctl status "${SERVICE_NAME}" --no-pager || true
+if ! sudo systemctl status "${SERVICE_NAME}" --no-pager; then
+  echo "[WARN] systemctl requires sudo privileges. Check via: sudo systemctl status ${SERVICE_NAME}"
+fi
 
 echo "[2/5] Import check"
 if [ -f .venv/bin/activate ]; then
@@ -45,9 +47,16 @@ finally:
     s.close()
 PY
 
+echo "[3.5/5] Socket bind check (0.0.0.0:${PORT})"
+if ss -lntp | grep -E "0.0.0.0:${PORT}|\\*: ${PORT}" >/dev/null 2>&1; then
+  echo "Service is bound to 0.0.0.0 for external access."
+else
+  echo "[WARN] Service is not bound to 0.0.0.0:${PORT}. This blocks external access."
+fi
+
 echo "[4/5] Public endpoint check"
 if [ -n "${PUBLIC_HOST}" ]; then
-  if curl -sS --max-time 3 "http://${PUBLIC_HOST}:${PORT}/sse" >/tmp/onesignal-mcp-sse-check.txt; then
+  if curl -isS --max-time 5 "http://${PUBLIC_HOST}:${PORT}/sse" | head -n 1 | tee /tmp/onesignal-mcp-sse-check.txt >/dev/null; then
     echo "Public endpoint is reachable at http://${PUBLIC_HOST}:${PORT}/sse"
   else
     echo "[ERROR] Public endpoint check failed: http://${PUBLIC_HOST}:${PORT}/sse"

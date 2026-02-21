@@ -34,13 +34,13 @@ fi
 
 echo "[3/6] Create virtualenv and install dependencies"
 rm -rf .venv
-if "$UV_BIN" venv --python 3.11 --force .venv; then
+if "$UV_BIN" venv --python 3.11 .venv; then
   :
-elif "$UV_BIN" venv --python 3.11 .venv; then
+elif "$UV_BIN" venv --python 3.11 --clear .venv; then
   :
 else
   echo "[WARN] Python 3.11 venv creation failed. Falling back to default interpreter."
-  "$UV_BIN" venv --force .venv
+  "$UV_BIN" venv .venv
 fi
 
 source .venv/bin/activate
@@ -49,9 +49,9 @@ source .venv/bin/activate
 echo "[4/6] Create HTTP entrypoint"
 cat > "$APP_DIR/run_http.py" <<PY
 from onesignal_refactored.server import mcp
-import inspect
 import logging
 import os
+from typing import Any, Callable, Optional, Sequence, Tuple, Union
 
 
 LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO").upper()
@@ -63,36 +63,66 @@ PORT = int(os.getenv("PORT", "8000"))
 TRANSPORT = "streamable-http"
 
 
-def _run_fastmcp():
-    sig = inspect.signature(mcp.run)
-    params = sig.parameters
-    has_transport = "transport" in params
-    has_host = "host" in params
-    has_port = "port" in params
-
-    candidates = []
-    # Prefer explicit host binding on versions that support it.
-    if has_transport and has_host and has_port:
-        candidates.append({"transport": TRANSPORT, "host": HOST, "port": PORT})
-    elif has_transport and has_host:
-        candidates.append({"transport": TRANSPORT, "host": HOST})
-
-    # If host is not supported, avoid trying transport-only/hostless run,
-    # because those often default to 127.0.0.1 and fail external access.
-
-    last_error = None
-    for candidate in candidates:
+def _resolve_uvicorn_app() -> Optional[Union[Callable[..., Any], Any]]:
+    """
+    Prefer explicit ASGI app attributes exported by FastMCP.
+    The order is defensive and compatible across fastmcp/mcp package versions.
+    """
+    candidates: Sequence[str] = (
+        "streamable_http_app",
+        "http_app",
+        "asgi_app",
+        "app",
+        "get_asgi_app",
+    )
+    for name in candidates:
+        if not hasattr(mcp, name):
+            continue
+        value = getattr(mcp, name)
+        if value is None:
+            continue
         try:
-            mcp.run(**candidate)
-            return
-        except TypeError as exc:
-            last_error = exc
+            if callable(value):
+                app = value()
+            else:
+                app = value
+            if app is None:
+                continue
+            logger.info("Resolved ASGI app from mcp.%s", name)
+            return app
+        except Exception:
+            logger.exception("Failed resolving mcp.%s via %s", name, value)
             continue
 
-    if not candidates:
-        raise RuntimeError("FastMCP.run() does not expose host binding parameter.")
+    return None
 
-    raise RuntimeError("Unable to start FastMCP with available run() signatures.") from last_error
+
+def _run_uvicorn():
+    import uvicorn
+
+    app = _resolve_uvicorn_app()
+    if app is None and callable(mcp):
+        app = mcp
+        logger.info("Falling back to uvicorn with callable FastMCP instance")
+
+    if app is None:
+        raise RuntimeError("No ASGI app candidate found for uvicorn fallback.")
+
+    logger.info("Starting via uvicorn on host=%s port=%s", HOST, PORT)
+    uvicorn.run(app, host=HOST, port=PORT, log_level=LOG_LEVEL.lower())
+
+
+def _run_fastmcp():
+    """
+    FastMCP.run() is still supported as fallback only.
+    We pass transport first for compatibility and rely on MCP-internal defaults if present.
+    """
+    last_error = None
+    try:
+        mcp.run(transport=TRANSPORT, host=HOST, port=PORT)
+        return
+    except TypeError as exc:
+        last_error = exc
 
 
 def _run_via_uvicorn_fallback():
@@ -135,13 +165,21 @@ def _run_via_uvicorn_fallback():
 if __name__ == "__main__":
     logger.info("Using MCP_HOST=%s PORT=%s", HOST, PORT)
     try:
-        _run_fastmcp()
+        _run_uvicorn()
         raise SystemExit(0)
     except Exception as exc:
-        logger.warning("FastMCP.run() strategy failed: %s", exc)
-        logger.warning("Falling back to uvicorn.run()")
-
-    _run_via_uvicorn_fallback()
+        logger.warning("Uvicorn fallback strategy failed: %s", exc)
+        try:
+            _run_fastmcp()
+            logger.info("Started with FastMCP.run() fallback")
+            raise SystemExit(0)
+        except Exception as inner:
+            logger.warning("FastMCP.run() fallback failed: %s", inner)
+            try:
+                _run_via_uvicorn_fallback()
+            except Exception:
+                logger.exception("Unable to start MCP server.")
+                raise RuntimeError("Unable to start FastMCP server.") from inner
 PY
 
 echo "[5/6] Ensure .env exists"
