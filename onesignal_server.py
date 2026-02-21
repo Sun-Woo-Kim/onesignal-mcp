@@ -3,8 +3,8 @@ import json
 import base64
 import requests
 import logging
-from typing import List, Dict, Any, Optional, Union
-from mcp.server.fastmcp import FastMCP, Context
+from typing import List, Dict, Any, Optional
+from mcp.server.fastmcp import FastMCP
 from dotenv import load_dotenv
 
 # Server information
@@ -40,7 +40,6 @@ logger.info(f"OneSignal MCP server initialized with log level: {log_level_str}")
 
 # OneSignal API configuration
 ONESIGNAL_API_URL = "https://api.onesignal.com/api/v1"
-ONESIGNAL_ORG_API_KEY = os.getenv("ONESIGNAL_ORG_API_KEY", "")
 
 # Class to manage app configurations
 class AppConfig:
@@ -52,38 +51,10 @@ class AppConfig:
     def __str__(self):
         return f"{self.name} ({self.app_id})"
 
-# Dictionary to store app configurations
+# Runtime-only app configs (injected via MCP tool calls)
 app_configs: Dict[str, AppConfig] = {}
-
-# Load app configurations from environment variables
-# AIBookCraft app configuration
-aibookcraft_app_id = os.getenv("ONESIGNAL_AIBOOKCRAFT_APP_ID", "") or os.getenv("ONESIGNAL_APP_ID", "")
-aibookcraft_api_key = os.getenv("ONESIGNAL_AIBOOKCRAFT_API_KEY", "") or os.getenv("ONESIGNAL_API_KEY", "")
-if aibookcraft_app_id and aibookcraft_api_key:
-    app_configs["aibookcraft"] = AppConfig(aibookcraft_app_id, aibookcraft_api_key, "AIBookCraft")
-    current_app_key = "aibookcraft"
-    logger.info(f"AIBookCraft app configured with ID: {aibookcraft_app_id}")
-
-# Weird Brains app configuration
-weirdbrains_app_id = os.getenv("ONESIGNAL_WEIRDBRAINS_APP_ID", "")
-weirdbrains_api_key = os.getenv("ONESIGNAL_WEIRDBRAINS_API_KEY", "")
-if weirdbrains_app_id and weirdbrains_api_key:
-    app_configs["weirdbrains"] = AppConfig(weirdbrains_app_id, weirdbrains_api_key, "Weird Brains")
-    if not current_app_key:
-        current_app_key = "weirdbrains"
-    logger.info(f"Weird Brains app configured with ID: {weirdbrains_app_id}")
-
-# Fallback for default app configuration
-if not app_configs:
-    default_app_id = os.getenv("ONESIGNAL_APP_ID", "")
-    default_api_key = os.getenv("ONESIGNAL_API_KEY", "")
-    if default_app_id and default_api_key:
-        app_configs["default"] = AppConfig(default_app_id, default_api_key, "Default App")
-        current_app_key = "default"
-        logger.info(f"Default app configured with ID: {default_app_id}")
-    else:
-        current_app_key = None
-        logger.warning("No app configurations found. Use add_app to add an app configuration.")
+current_app_key = None
+logger.info("Server ready. Credentials will be injected per MCP tool call.")
 
 # Function to add a new app configuration
 def add_app_config(key: str, app_id: str, api_key: str, name: str = None) -> None:
@@ -211,17 +182,9 @@ async def make_onesignal_request(
             encoded_key = base64.b64encode(f"{app_config.api_key}:".encode()).decode()
             request_headers["Authorization"] = f"Basic {encoded_key}"
     else:
-        if not ONESIGNAL_ORG_API_KEY:
-            error_msg = "Organization API Key not configured. Set the ONESIGNAL_ORG_API_KEY environment variable."
-            logger.error(error_msg)
-            return {"error": error_msg}
-        # Check if it's a v2 API key
-        if ONESIGNAL_ORG_API_KEY.startswith("os_v2_"):
-            request_headers["Authorization"] = f"Key {ONESIGNAL_ORG_API_KEY}"
-        else:
-            # Basic auth requires base64 encoding of "api_key:"
-            encoded_key = base64.b64encode(f"{ONESIGNAL_ORG_API_KEY}:".encode()).decode()
-            request_headers["Authorization"] = f"Basic {encoded_key}"
+        error_msg = "Organization API Key required. Pass org_api_key via MCP tool call."
+        logger.error(error_msg)
+        return {"error": error_msg}
     
     url = f"{ONESIGNAL_API_URL}/{endpoint}"
     
@@ -322,22 +285,14 @@ def get_onesignal_config() -> str:
     OneSignal Server Configuration:
     Version: {__version__}
     API URL: {ONESIGNAL_API_URL}
-    Organization API Key Status: {'Configured' if ONESIGNAL_ORG_API_KEY else 'Not configured'}
     
     Available Apps:
     {app_list or "No apps configured"}
     
     Current App: {current_app.name if current_app else 'None'}
     
-    This MCP server provides tools for:
-    - Viewing and managing messages (push notifications, emails, SMS)
-    - Managing users and subscriptions
-    - Viewing and managing segments
-    - Creating and managing templates
-    - Viewing app information
-    - Managing multiple OneSignal applications
-    
-    Make sure you have set the appropriate environment variables in your .env file.
+    All credentials (app_id, app_api_key, org_api_key) are injected per MCP tool call.
+    Use add_app to register apps, or pass credentials directly to each tool.
     """
 
 # === App Management Tools ===
@@ -856,9 +811,9 @@ async def view_apps() -> str:
     
     if "error" in result:
         if "401" in str(result["error"]) or "403" in str(result["error"]):
-            return ("Error: Your Organization API Key is either not configured or doesn't have permission to view all apps. "
-                   "Make sure you've set the ONESIGNAL_ORG_API_KEY environment variable with a valid Organization API Key. "
-                   "Organization API Keys can be found in your OneSignal dashboard under Organizations > Keys & IDs.")
+            return ("Error: Organization API Key is missing or invalid. "
+                   "Pass org_api_key to this tool call. "
+                   "Find it in OneSignal dashboard > Organizations > Keys & IDs.")
         return f"Error fetching applications: {result['error']}"
     
     if not result:
@@ -898,7 +853,7 @@ async def create_app(name: str, site_name: str = None) -> str:
     if "error" in result:
         if "401" in str(result["error"]) or "403" in str(result["error"]):
             return ("Error: Your Organization API Key is either not configured or doesn't have permission to create apps. "
-                   "Make sure you've set the ONESIGNAL_ORG_API_KEY environment variable with a valid Organization API Key.")
+                   "Pass org_api_key to this tool call.")
         return f"Error creating application: {result['error']}"
     
     return f"Application '{name}' created successfully with ID: {result.get('id')}"
@@ -928,7 +883,7 @@ async def update_app(app_id: str, name: str = None, site_name: str = None) -> st
     if "error" in result:
         if "401" in str(result["error"]) or "403" in str(result["error"]):
             return ("Error: Your Organization API Key is either not configured or doesn't have permission to update apps. "
-                   "Make sure you've set the ONESIGNAL_ORG_API_KEY environment variable with a valid Organization API Key.")
+                   "Pass org_api_key to this tool call.")
         return f"Error updating application: {result['error']}"
     
     return f"Application '{app_id}' updated successfully"
@@ -946,7 +901,7 @@ async def view_app_api_keys(app_id: str) -> str:
         status_code = result.get("status_code")
         if status_code == 401 or status_code == 403:
             return ("Error: Your Organization API Key is either not configured or doesn't have permission to view API keys. "
-                   "Make sure you've set the ONESIGNAL_ORG_API_KEY environment variable with a valid Organization API Key.")
+                   "Pass org_api_key to this tool call.")
         return f"Error fetching API keys: {result['error']}"
     
     if not result.get("tokens", []):
@@ -981,7 +936,7 @@ async def create_app_api_key(app_id: str, name: str) -> str:
     if "error" in result:
         if "401" in str(result["error"]) or "403" in str(result["error"]):
             return ("Error: Your Organization API Key is either not configured or doesn't have permission to create API keys. "
-                   "Make sure you've set the ONESIGNAL_ORG_API_KEY environment variable with a valid Organization API Key.")
+                   "Pass org_api_key to this tool call.")
         return f"Error creating API key: {result['error']}"
     
     # Format the API key details for display

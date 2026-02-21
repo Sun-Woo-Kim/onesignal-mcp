@@ -3,8 +3,7 @@ import logging
 import requests
 from typing import Dict, Any, Optional
 from .config import (
-    ONESIGNAL_API_URL, 
-    ONESIGNAL_ORG_API_KEY,
+    ONESIGNAL_API_URL,
     app_manager,
     requires_org_api_key
 )
@@ -45,45 +44,28 @@ class OneSignalAPIClient:
         org_api_key: Optional[str] = None
     ) -> Dict[str, Any]:
         """
-        Make a request to the OneSignal API with proper authentication.
+        Make a request to the OneSignal API.
         
-        Args:
-            endpoint: API endpoint path
-            method: HTTP method (GET, POST, PUT, DELETE, PATCH)
-            data: Request body for POST/PUT/PATCH requests
-            params: Query parameters for GET requests
-            use_org_key: Whether to use the organization API key
-            app_key: Legacy key of stored app configuration
-            app_id: OneSignal app ID for direct injection
-            app_api_key: OneSignal app REST API key for direct injection
-            org_api_key: Organization API key for direct injection
-            
-        Returns:
-            API response as dictionary
-            
-        Raises:
-            OneSignalAPIError: If the API request fails
+        All credentials must be injected per call:
+        - app_id + app_api_key for app-level endpoints
+        - org_api_key for org-level endpoints
+        - app_key to reference a locally stored app config
         """
         headers = {
             "Content-Type": "application/json",
             "Accept": "application/json",
         }
         
-        # Determine authentication method
         if use_org_key is None:
             use_org_key = requires_org_api_key(endpoint)
         
-        # Set authentication header
         if use_org_key:
-            org_key = org_api_key or ONESIGNAL_ORG_API_KEY
-            if not org_key:
+            if not org_api_key:
                 raise OneSignalAPIError(
-                    "Organization API Key not configured. "
-                    "Inject org_api_key per tool call or set ONESIGNAL_ORG_API_KEY."
+                    "Organization API Key required. Pass org_api_key to this tool call."
                 )
-            headers["Authorization"] = f"Basic {org_key}"
+            headers["Authorization"] = f"Basic {org_api_key}"
         else:
-            # Get app configuration
             app_config = None
             if app_id and app_api_key:
                 app_config = _AppConfigSnapshot(app_id, app_api_key, "Injected App")
@@ -95,7 +77,7 @@ class OneSignalAPIClient:
             if not app_config:
                 raise OneSignalAPIError(
                     "No app configuration available. "
-                    "Inject app_id and app_api_key, or use set_current_app."
+                    "Pass app_id + app_api_key, or use add_app/switch_app first."
                 )
             if not app_id:
                 app_id = app_config.app_id
@@ -104,7 +86,6 @@ class OneSignalAPIClient:
             
             headers["Authorization"] = f"Basic {app_api_key}"
             
-            # Add app_id to params/data if needed
             if params is None:
                 params = {}
             if "app_id" not in params and not endpoint.startswith("apps/"):
@@ -118,7 +99,6 @@ class OneSignalAPIClient:
         
         try:
             logger.debug(f"Making {method} request to {url}")
-            logger.debug(f"Using {'Organization API Key' if use_org_key else 'App REST API Key'}")
             
             response = self._make_request(method, url, headers, params, data)
             response.raise_for_status()
@@ -146,7 +126,6 @@ class OneSignalAPIClient:
         params: Optional[Dict[str, Any]],
         data: Optional[Dict[str, Any]]
     ) -> requests.Response:
-        """Make the actual HTTP request."""
         method = method.upper()
         
         if method == "GET":
@@ -163,12 +142,10 @@ class OneSignalAPIClient:
             raise ValueError(f"Unsupported HTTP method: {method}")
     
     def _extract_error_message(self, error: requests.exceptions.HTTPError) -> str:
-        """Extract a meaningful error message from the HTTP error."""
         try:
             if hasattr(error, 'response') and error.response is not None:
                 error_data = error.response.json()
                 if isinstance(error_data, dict):
-                    # Try different error message formats
                     if 'errors' in error_data:
                         errors = error_data['errors']
                         if isinstance(errors, list) and errors:
@@ -185,5 +162,4 @@ class OneSignalAPIClient:
         return f"Error: {str(error)}"
 
 
-# Global API client instance
-api_client = OneSignalAPIClient() 
+api_client = OneSignalAPIClient()

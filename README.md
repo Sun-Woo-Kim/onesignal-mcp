@@ -51,22 +51,16 @@ pip install onesignal-mcp
 
 ## Configuration
 
-1. Create a `.env` file in the root directory with your OneSignal credentials:
+1. Create a `.env` file for server settings (credentials are injected per MCP tool call):
    ```
-   # Optional legacy fallback for app-scoped calls
-   ONESIGNAL_APP_ID=your_app_id_here
-   ONESIGNAL_API_KEY=your_rest_api_key_here
-
-   # Organization API key (for org-level operations)
-   ONESIGNAL_ORG_API_KEY=your_organization_api_key_here
-
-   # Logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
+   MCP_HOST=0.0.0.0
+   PORT=8000
    LOG_LEVEL=INFO
    ```
 
-2. App discovery/auth flow:
-   - If you do not set `ONESIGNAL_APP_ID`/`ONESIGNAL_API_KEY`, you can call `discover_apps` from MCP with an `org_api_key`.
-   - Use the returned `id` + app REST key to inject into each tool call.
+2. All OneSignal credentials (`app_id`, `app_api_key`, `org_api_key`) are passed per MCP tool call.
+   - Use `discover_apps` with `org_api_key` to find your apps.
+   - Use `add_app` to register an app locally, or pass `app_id` + `app_api_key` directly to each tool.
 
 3. Find your OneSignal credentials:
    - **App ID**: Settings > Keys & IDs > OneSignal App ID
