@@ -31,8 +31,12 @@ if log_level_str not in valid_log_levels:
 
 logger.setLevel(log_level_str)
 
-# Initialize MCP server
-mcp = FastMCP("onesignal-server", settings={"log_level": log_level_str})
+# Initialize MCP server (compatible with both old and new FastMCP signatures)
+try:
+    mcp = FastMCP("onesignal-server", log_level=log_level_str)
+except TypeError:
+    logger.debug("FastMCP does not accept log_level argument; using default signature.")
+    mcp = FastMCP("onesignal-server")
 logger.info(f"OneSignal MCP server v{__version__} initialized")
 
 

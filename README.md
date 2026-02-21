@@ -84,6 +84,21 @@ python -m onesignal_refactored
 The server will start and register itself with the MCP system without requiring app credentials at startup.
 Use `discover_apps` and pass `app_id` + `app_api_key` into the tool that needs them.
 
+### Lightsail deployment scripts
+
+```bash
+# first time deployment (clone + install)
+bash scripts/lightsail-bootstrap.sh
+
+# when repo already cloned and only install/update is needed
+bash scripts/install.sh
+
+# health check after deploy
+bash scripts/test.sh
+```
+
+`lightsail-bootstrap.sh` does: clone (if needed) → install dependencies → configure service → start MCP → run test script.
+
 ## MCP usage flow (new)
 
 1. `discover_apps(org_api_key="...")` → get all app IDs for the org.
