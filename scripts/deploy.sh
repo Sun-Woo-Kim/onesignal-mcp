@@ -5,7 +5,7 @@ set -euo pipefail
 # Usage: sudo PUBLIC_HOST=3.34.235.194 bash scripts/deploy.sh
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-APP_DIR="${APP_DIR:-${SCRIPT_DIR}/..}"
+APP_DIR="${APP_DIR:-$(cd "${SCRIPT_DIR}/.." && pwd -P)}"
 BRANCH="${BRANCH:-master}"
 SERVICE_NAME="${SERVICE_NAME:-onesignal-mcp}"
 PORT="${PORT:-8000}"

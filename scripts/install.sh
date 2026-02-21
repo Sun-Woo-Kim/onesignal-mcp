@@ -2,13 +2,14 @@
 set -euo pipefail
 
 # Install runtime and register systemd service for OneSignal MCP Server.
-# Requires: Amazon Linux 2 with sudo access.
+# Requires: Amazon Linux 2 with root access.
 # Usage: sudo bash scripts/install.sh
 
-APP_DIR="${APP_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
+APP_DIR="${APP_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)}"
 SERVICE_NAME="${SERVICE_NAME:-onesignal-mcp}"
 PORT="${PORT:-8000}"
 RUN_USER="${RUN_USER:-ec2-user}"
+PYTHON_VERSION="3.11.9"
 
 cd "$APP_DIR"
 
@@ -16,19 +17,22 @@ echo "==> [1/5] Install Python 3.11"
 if command -v python3.11 &>/dev/null; then
   echo "    python3.11 already installed: $(python3.11 --version)"
 else
-  if command -v amazon-linux-extras &>/dev/null; then
-    amazon-linux-extras install python3.8 -y 2>/dev/null || true
-    yum install -y python311 python3.11 2>/dev/null || {
-      echo "    Trying amazon-linux-extras for python3.11..."
-      amazon-linux-extras enable python3.11 2>/dev/null || true
-      yum install -y python3.11 2>/dev/null || true
-    }
+  echo "    Python 3.11 not found. Building from source..."
+  yum install -y gcc openssl11-devel bzip2-devel libffi-devel zlib-devel wget make 2>/dev/null || true
+
+  cd /opt
+  if [ ! -f "Python-${PYTHON_VERSION}.tgz" ]; then
+    wget -q "https://www.python.org/ftp/python/${PYTHON_VERSION}/Python-${PYTHON_VERSION}.tgz"
   fi
+  tar xzf "Python-${PYTHON_VERSION}.tgz"
+  cd "Python-${PYTHON_VERSION}"
+  ./configure --enable-optimizations --with-openssl=/usr --quiet
+  make altinstall -j"$(nproc)" 2>&1 | tail -5
+
+  cd "$APP_DIR"
 
   if ! command -v python3.11 &>/dev/null; then
-    echo "[ERROR] Failed to install python3.11."
-    echo "        Install manually: sudo yum install -y python3.11"
-    echo "        Or on AL2: sudo amazon-linux-extras install python3.8 && sudo yum install -y python3.11"
+    echo "[ERROR] Python 3.11 build failed."
     exit 1
   fi
   echo "    Installed: $(python3.11 --version)"
@@ -50,7 +54,7 @@ MCP_HOST=0.0.0.0
 PORT=8000
 LOG_LEVEL=INFO
 ENV
-  echo "    Created .env (edit to add your API keys)"
+  echo "    Created .env"
 else
   echo "    .env already exists, skipping."
 fi
