@@ -34,9 +34,14 @@ if [ ! -x "$UV_BIN" ]; then
 fi
 
 echo "[3/6] Create virtualenv and install dependencies"
-if ! "$UV_BIN" venv --recreate --python 3.11 .venv; then
-  echo "[WARN] Python 3.11 venv creation failed. Falling back to default python."
-  "$UV_BIN" venv --recreate .venv
+if "$UV_BIN" venv --python 3.11 .venv; then
+  :
+else
+  echo "[WARN] Python 3.11 venv creation failed. Recreate with fallback path."
+  if [ -d .venv ]; then
+    rm -rf .venv
+  fi
+  "$UV_BIN" venv .venv
 fi
 
 source .venv/bin/activate
