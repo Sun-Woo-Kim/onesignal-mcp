@@ -10,12 +10,17 @@ PORT="${PORT:-8000}"
 cd "$APP_DIR"
 
 echo "[1/4] Service status"
-sudo systemctl status "${SERVICE_NAME}" --no-pager
+sudo systemctl status "${SERVICE_NAME}" --no-pager || true
 
 echo "[2/4] Import check"
 if [ -f .venv/bin/activate ]; then
   source .venv/bin/activate
-  python -c "from onesignal_refactored.server import mcp; print('onesignal_refactored.server import ok')"
+  if ! python -c "from onesignal_refactored.server import mcp; print('onesignal_refactored.server import ok')"; then
+    echo "[ERROR] Python import failed"
+    echo "--- Last 120 lines of service log ---"
+    journalctl -u "${SERVICE_NAME}" -n 120 --no-pager
+    exit 1
+  fi
 else
   echo "[ERROR] .venv not found. Run install.sh first."
   exit 1
