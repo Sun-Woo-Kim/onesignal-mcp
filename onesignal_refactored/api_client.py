@@ -8,6 +8,14 @@ from .config import (
     app_manager,
     requires_org_api_key
 )
+from dataclasses import dataclass
+
+
+@dataclass
+class _AppConfigSnapshot:
+    app_id: str
+    api_key: str
+    name: str = "injected-app"
 
 logger = logging.getLogger("onesignal-mcp.api_client")
 
@@ -31,7 +39,10 @@ class OneSignalAPIClient:
         data: Optional[Dict[str, Any]] = None,
         params: Optional[Dict[str, Any]] = None,
         use_org_key: Optional[bool] = None,
-        app_key: Optional[str] = None
+        app_key: Optional[str] = None,
+        app_id: Optional[str] = None,
+        app_api_key: Optional[str] = None,
+        org_api_key: Optional[str] = None
     ) -> Dict[str, Any]:
         """
         Make a request to the OneSignal API with proper authentication.
@@ -42,7 +53,10 @@ class OneSignalAPIClient:
             data: Request body for POST/PUT/PATCH requests
             params: Query parameters for GET requests
             use_org_key: Whether to use the organization API key
-            app_key: The key of the app configuration to use
+            app_key: Legacy key of stored app configuration
+            app_id: OneSignal app ID for direct injection
+            app_api_key: OneSignal app REST API key for direct injection
+            org_api_key: Organization API key for direct injection
             
         Returns:
             API response as dictionary
@@ -61,16 +75,19 @@ class OneSignalAPIClient:
         
         # Set authentication header
         if use_org_key:
-            if not ONESIGNAL_ORG_API_KEY:
+            org_key = org_api_key or ONESIGNAL_ORG_API_KEY
+            if not org_key:
                 raise OneSignalAPIError(
                     "Organization API Key not configured. "
                     "Set the ONESIGNAL_ORG_API_KEY environment variable."
                 )
-            headers["Authorization"] = f"Basic {ONESIGNAL_ORG_API_KEY}"
+            headers["Authorization"] = f"Basic {org_key}"
         else:
             # Get app configuration
             app_config = None
-            if app_key:
+            if app_id and app_api_key:
+                app_config = _AppConfigSnapshot(app_id, app_api_key, "Injected App")
+            elif app_key:
                 app_config = app_manager.get_app(app_key)
             else:
                 app_config = app_manager.get_current_app()
@@ -78,20 +95,24 @@ class OneSignalAPIClient:
             if not app_config:
                 raise OneSignalAPIError(
                     "No app configuration available. "
-                    "Use set_current_app or specify app_key."
+                    "Inject app_id and app_api_key, or use set_current_app."
                 )
+            if not app_id:
+                app_id = app_config.app_id
             
-            headers["Authorization"] = f"Basic {app_config.api_key}"
+            app_api_key = app_api_key or app_config.api_key
+            
+            headers["Authorization"] = f"Basic {app_api_key}"
             
             # Add app_id to params/data if needed
             if params is None:
                 params = {}
             if "app_id" not in params and not endpoint.startswith("apps/"):
-                params["app_id"] = app_config.app_id
+                params["app_id"] = app_id
             
             if data is not None and method in ["POST", "PUT", "PATCH"]:
                 if "app_id" not in data and not endpoint.startswith("apps/"):
-                    data["app_id"] = app_config.app_id
+                    data["app_id"] = app_id
         
         url = f"{self.api_url}/{endpoint}"
         

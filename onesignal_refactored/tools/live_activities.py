@@ -3,12 +3,27 @@ from typing import Dict, Any, Optional
 from ..api_client import api_client
 
 
+def _to_auth_kwargs(
+    app_id: Optional[str],
+    app_api_key: Optional[str],
+    app_key: Optional[str]
+) -> dict:
+    return {
+        "app_id": app_id,
+        "app_api_key": app_api_key,
+        "app_key": app_key,
+    }
+
+
 async def start_live_activity(
     activity_id: str,
     push_token: str,
     subscription_id: str,
     activity_attributes: Dict[str, Any],
     content_state: Dict[str, Any],
+    app_id: Optional[str] = None,
+    app_api_key: Optional[str] = None,
+    app_key: Optional[str] = None,
     **kwargs
 ) -> Dict[str, Any]:
     """
@@ -35,7 +50,8 @@ async def start_live_activity(
     return await api_client.request(
         f"live_activities/{activity_id}/start",
         method="POST",
-        data=data
+        data=data,
+        **_to_auth_kwargs(app_id, app_api_key, app_key)
     )
 
 
@@ -47,6 +63,9 @@ async def update_live_activity(
     dismissal_date: Optional[int] = None,
     priority: Optional[int] = None,
     sound: Optional[str] = None,
+    app_id: Optional[str] = None,
+    app_api_key: Optional[str] = None,
+    app_key: Optional[str] = None,
     **kwargs
 ) -> Dict[str, Any]:
     """
@@ -74,13 +93,14 @@ async def update_live_activity(
         data["priority"] = priority
     if sound:
         data["sound"] = sound
-    
+
     data.update(kwargs)
     
     return await api_client.request(
         f"live_activities/{activity_id}/update",
         method="POST",
-        data=data
+        data=data,
+        **_to_auth_kwargs(app_id, app_api_key, app_key)
     )
 
 
@@ -89,6 +109,9 @@ async def end_live_activity(
     subscription_id: str,
     dismissal_date: Optional[int] = None,
     priority: Optional[int] = None,
+    app_id: Optional[str] = None,
+    app_api_key: Optional[str] = None,
+    app_key: Optional[str] = None,
     **kwargs
 ) -> Dict[str, Any]:
     """
@@ -116,13 +139,17 @@ async def end_live_activity(
     return await api_client.request(
         f"live_activities/{activity_id}/end",
         method="POST",
-        data=data
+        data=data,
+        **_to_auth_kwargs(app_id, app_api_key, app_key)
     )
 
 
 async def get_live_activity_status(
     activity_id: str,
-    subscription_id: str
+    subscription_id: str,
+    app_id: Optional[str] = None,
+    app_api_key: Optional[str] = None,
+    app_key: Optional[str] = None
 ) -> Dict[str, Any]:
     """
     Get the status of a Live Activity.
@@ -136,5 +163,6 @@ async def get_live_activity_status(
     return await api_client.request(
         f"live_activities/{activity_id}/status",
         method="GET",
-        params=params
+        params=params,
+        **_to_auth_kwargs(app_id, app_api_key, app_key)
     ) 

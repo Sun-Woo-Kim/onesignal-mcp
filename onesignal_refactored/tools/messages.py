@@ -1,8 +1,18 @@
 """Message management tools for OneSignal MCP server."""
-import json
 from typing import List, Dict, Any, Optional
 from ..api_client import api_client, OneSignalAPIError
-from ..config import app_manager
+
+
+def _to_auth_kwargs(
+    app_id: Optional[str],
+    app_api_key: Optional[str],
+    app_key: Optional[str]
+) -> dict:
+    return {
+        "app_id": app_id,
+        "app_api_key": app_api_key,
+        "app_key": app_key,
+    }
 
 
 async def send_push_notification(
@@ -12,6 +22,9 @@ async def send_push_notification(
     include_player_ids: Optional[List[str]] = None,
     external_ids: Optional[List[str]] = None,
     data: Optional[Dict[str, Any]] = None,
+    app_id: Optional[str] = None,
+    app_api_key: Optional[str] = None,
+    app_key: Optional[str] = None,
     **kwargs
 ) -> Dict[str, Any]:
     """
@@ -31,25 +44,28 @@ async def send_push_notification(
         "headings": {"en": title},
         "target_channel": "push"
     }
-    
-    # Set targeting
+
     if not any([segments, include_player_ids, external_ids]):
         segments = ["Subscribed Users"]
-    
+
     if segments:
         notification_data["included_segments"] = segments
     if include_player_ids:
         notification_data["include_player_ids"] = include_player_ids
     if external_ids:
         notification_data["include_external_user_ids"] = external_ids
-    
+
     if data:
         notification_data["data"] = data
-    
-    # Add any additional parameters
+
     notification_data.update(kwargs)
-    
-    return await api_client.request("notifications", method="POST", data=notification_data)
+
+    return await api_client.request(
+        "notifications",
+        method="POST",
+        data=notification_data,
+        **_to_auth_kwargs(app_id, app_api_key, app_key)
+    )
 
 
 async def send_email(
@@ -60,6 +76,9 @@ async def send_email(
     include_emails: Optional[List[str]] = None,
     external_ids: Optional[List[str]] = None,
     template_id: Optional[str] = None,
+    app_id: Optional[str] = None,
+    app_api_key: Optional[str] = None,
+    app_key: Optional[str] = None,
     **kwargs
 ) -> Dict[str, Any]:
     """
@@ -80,8 +99,7 @@ async def send_email(
         "email_body": email_body or body,
         "target_channel": "email"
     }
-    
-    # Set targeting
+
     if include_emails:
         email_data["include_emails"] = include_emails
     elif external_ids:
@@ -90,14 +108,18 @@ async def send_email(
         email_data["included_segments"] = segments
     else:
         email_data["included_segments"] = ["Subscribed Users"]
-    
+
     if template_id:
         email_data["template_id"] = template_id
-    
-    # Add any additional parameters
+
     email_data.update(kwargs)
-    
-    return await api_client.request("notifications", method="POST", data=email_data)
+
+    return await api_client.request(
+        "notifications",
+        method="POST",
+        data=email_data,
+        **_to_auth_kwargs(app_id, app_api_key, app_key)
+    )
 
 
 async def send_sms(
@@ -106,6 +128,9 @@ async def send_sms(
     segments: Optional[List[str]] = None,
     external_ids: Optional[List[str]] = None,
     media_url: Optional[str] = None,
+    app_id: Optional[str] = None,
+    app_api_key: Optional[str] = None,
+    app_key: Optional[str] = None,
     **kwargs
 ) -> Dict[str, Any]:
     """
@@ -123,8 +148,7 @@ async def send_sms(
         "contents": {"en": message},
         "target_channel": "sms"
     }
-    
-    # Set targeting
+
     if phone_numbers:
         sms_data["include_phone_numbers"] = phone_numbers
     elif external_ids:
@@ -135,14 +159,18 @@ async def send_sms(
         raise OneSignalAPIError(
             "SMS requires phone_numbers, external_ids, or segments to be specified"
         )
-    
+
     if media_url:
         sms_data["mms_media_url"] = media_url
-    
-    # Add any additional parameters
+
     sms_data.update(kwargs)
-    
-    return await api_client.request("notifications", method="POST", data=sms_data)
+
+    return await api_client.request(
+        "notifications",
+        method="POST",
+        data=sms_data,
+        **_to_auth_kwargs(app_id, app_api_key, app_key)
+    )
 
 
 async def send_transactional_message(
@@ -151,6 +179,9 @@ async def send_transactional_message(
     recipients: Dict[str, Any],
     template_id: Optional[str] = None,
     custom_data: Optional[Dict[str, Any]] = None,
+    app_id: Optional[str] = None,
+    app_api_key: Optional[str] = None,
+    app_key: Optional[str] = None,
     **kwargs
 ) -> Dict[str, Any]:
     """
@@ -168,37 +199,42 @@ async def send_transactional_message(
         "target_channel": channel,
         "is_transactional": True
     }
-    
-    # Set content based on channel
+
     if channel == "email":
         message_data["email_subject"] = content.get("subject", "")
         message_data["email_body"] = content.get("body", "")
     else:
         message_data["contents"] = content
-    
-    # Set recipients
+
     message_data.update(recipients)
-    
+
     if template_id:
         message_data["template_id"] = template_id
-    
+
     if custom_data:
         message_data["data"] = custom_data
-    
-    # Add any additional parameters
+
     message_data.update(kwargs)
-    
-    return await api_client.request("notifications", method="POST", data=message_data)
+
+    return await api_client.request(
+        "notifications",
+        method="POST",
+        data=message_data,
+        **_to_auth_kwargs(app_id, app_api_key, app_key)
+    )
 
 
 async def view_messages(
     limit: int = 20,
     offset: int = 0,
-    kind: Optional[int] = None
+    kind: Optional[int] = None,
+    app_id: Optional[str] = None,
+    app_api_key: Optional[str] = None,
+    app_key: Optional[str] = None
 ) -> Dict[str, Any]:
     """
     View recent messages sent through OneSignal.
-    
+
     Args:
         limit: Maximum number of messages to return (max: 50)
         offset: Result offset for pagination
@@ -207,8 +243,13 @@ async def view_messages(
     params = {"limit": min(limit, 50), "offset": offset}
     if kind is not None:
         params["kind"] = kind
-    
-    return await api_client.request("notifications", method="GET", params=params)
+
+    return await api_client.request(
+        "notifications",
+        method="GET",
+        params=params,
+        **_to_auth_kwargs(app_id, app_api_key, app_key)
+    )
 
 
 async def view_message_details(message_id: str) -> Dict[str, Any]:
@@ -221,7 +262,15 @@ async def cancel_message(message_id: str) -> Dict[str, Any]:
     return await api_client.request(f"notifications/{message_id}", method="DELETE")
 
 
-async def view_message_history(message_id: str, event: str) -> Dict[str, Any]:
+async def view_message_history(
+    message_id: str,
+    event: str,
+    app_id: Optional[str] = None,
+    app_api_key: Optional[str] = None,
+    app_key: Optional[str] = None,
+    recipient_email: Optional[str] = None,
+    **kwargs
+) -> Dict[str, Any]:
     """
     View the history/recipients of a message based on events.
     
@@ -229,20 +278,18 @@ async def view_message_history(message_id: str, event: str) -> Dict[str, Any]:
         message_id: The ID of the message
         event: The event type to track (e.g., 'sent', 'clicked')
     """
-    app_config = app_manager.get_current_app()
-    if not app_config:
-        raise OneSignalAPIError("No app currently selected")
-    
     data = {
-        "app_id": app_config.app_id,
-        "events": event,
-        "email": f"{app_config.name}-history@example.com"
+        "events": event
     }
-    
+    if recipient_email:
+        data["email"] = recipient_email
+    data.update(kwargs)
+
     return await api_client.request(
-        f"notifications/{message_id}/history", 
-        method="POST", 
-        data=data
+        f"notifications/{message_id}/history",
+        method="POST",
+        data=data,
+        **_to_auth_kwargs(app_id, app_api_key, app_key)
     )
 
 
@@ -264,12 +311,12 @@ async def export_messages_csv(
         data["start_date"] = start_date
     if end_date:
         data["end_date"] = end_date
-    
+
     data.update(kwargs)
-    
+
     return await api_client.request(
         "notifications/csv_export",
         method="POST",
         data=data,
         use_org_key=True
-    ) 
+    )

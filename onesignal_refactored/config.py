@@ -36,34 +36,18 @@ class AppManager:
         self._load_from_environment()
     
     def _load_from_environment(self):
-        """Load app configurations from environment variables."""
-        # AIBookCraft app configuration
-        aibookcraft_app_id = os.getenv("ONESIGNAL_AIBOOKCRAFT_APP_ID", "") or os.getenv("ONESIGNAL_APP_ID", "")
-        aibookcraft_api_key = os.getenv("ONESIGNAL_AIBOOKCRAFT_API_KEY", "") or os.getenv("ONESIGNAL_API_KEY", "")
-        if aibookcraft_app_id and aibookcraft_api_key:
-            self.add_app("aibookcraft", aibookcraft_app_id, aibookcraft_api_key, "AIBookCraft")
-            self.current_app_key = "aibookcraft"
-            logger.info(f"AIBookCraft app configured with ID: {aibookcraft_app_id}")
-
-        # Weird Brains app configuration
-        weirdbrains_app_id = os.getenv("ONESIGNAL_WEIRDBRAINS_APP_ID", "")
-        weirdbrains_api_key = os.getenv("ONESIGNAL_WEIRDBRAINS_API_KEY", "")
-        if weirdbrains_app_id and weirdbrains_api_key:
-            self.add_app("weirdbrains", weirdbrains_app_id, weirdbrains_api_key, "Weird Brains")
-            if not self.current_app_key:
-                self.current_app_key = "weirdbrains"
-            logger.info(f"Weird Brains app configured with ID: {weirdbrains_app_id}")
-
-        # Fallback for default app configuration
-        if not self.app_configs:
-            default_app_id = os.getenv("ONESIGNAL_APP_ID", "")
-            default_api_key = os.getenv("ONESIGNAL_API_KEY", "")
-            if default_app_id and default_api_key:
-                self.add_app("default", default_app_id, default_api_key, "Default App")
-                self.current_app_key = "default"
-                logger.info(f"Default app configured with ID: {default_app_id}")
-            else:
-                logger.warning("No app configurations found. Use add_app to add an app configuration.")
+        """
+        Load legacy fallback app configuration from environment variables.
+        Keep only generic defaults for backwards compatibility; prefer caller-injected credentials.
+        """
+        default_app_id = os.getenv("ONESIGNAL_APP_ID", "").strip()
+        default_api_key = os.getenv("ONESIGNAL_API_KEY", "").strip()
+        if default_app_id and default_api_key:
+            self.add_app("default", default_app_id, default_api_key, "Default App")
+            self.current_app_key = "default"
+            logger.info("Legacy default app configured from ONESIGNAL_APP_ID/ONESIGNAL_API_KEY")
+        else:
+            logger.debug("No legacy app configuration found. App credentials should be injected per request.")
     
     def add_app(self, key: str, app_id: str, api_key: str, name: Optional[str] = None) -> None:
         """Add a new app configuration."""

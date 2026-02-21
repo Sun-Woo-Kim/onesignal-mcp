@@ -53,38 +53,42 @@ pip install onesignal-mcp
 
 1. Create a `.env` file in the root directory with your OneSignal credentials:
    ```
-   # Default app credentials (optional, you can also add apps via the API)
+   # Optional legacy fallback for app-scoped calls
    ONESIGNAL_APP_ID=your_app_id_here
    ONESIGNAL_API_KEY=your_rest_api_key_here
-   
+
    # Organization API key (for org-level operations)
    ONESIGNAL_ORG_API_KEY=your_organization_api_key_here
-   
-   # Optional: Multiple app configurations
-   ONESIGNAL_AIBOOKCRAFT_APP_ID=aibookcraft_app_id
-   ONESIGNAL_AIBOOKCRAFT_API_KEY=aibookcraft_api_key
-   
-   ONESIGNAL_WEIRDBRAINS_APP_ID=weirdbrains_app_id
-   ONESIGNAL_WEIRDBRAINS_API_KEY=weirdbrains_api_key
-   
+
    # Logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
    LOG_LEVEL=INFO
    ```
 
-2. Find your OneSignal credentials:
+2. App discovery/auth flow:
+   - If you do not set `ONESIGNAL_APP_ID`/`ONESIGNAL_API_KEY`, you can call `discover_apps` from MCP with an `org_api_key`.
+   - Use the returned `id` + app REST key to inject into each tool call.
+
+3. Find your OneSignal credentials:
    - **App ID**: Settings > Keys & IDs > OneSignal App ID
    - **REST API Key**: Settings > Keys & IDs > REST API Key
    - **Organization API Key**: Organization Settings > API Keys
 
 ## Usage
 
-### Running the Server
+### Running the Server (refactored auth-injected mode)
 
 ```bash
-python onesignal_server.py
+python -m onesignal_refactored
 ```
 
-The server will start and register itself with the MCP system, making all 57 tools available for use.
+The server will start and register itself with the MCP system without requiring app credentials at startup.
+Use `discover_apps` and pass `app_id` + `app_api_key` into the tool that needs them.
+
+## MCP usage flow (new)
+
+1. `discover_apps(org_api_key="...")` → get all app IDs for the org.
+2. `send_push_notification(..., app_id="ONE_SIGNAL_APP_ID", app_api_key="APP_REST_KEY")`
+3. For org-level operations, pass only `org_api_key="..."` to that tool (when supported).
 
 ## Complete Tools Reference (57 Tools)
 

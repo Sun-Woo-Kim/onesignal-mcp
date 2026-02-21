@@ -1,13 +1,27 @@
 """Template management tools for OneSignal MCP server."""
 from typing import Dict, Any, Optional
 from ..api_client import api_client
-from ..config import app_manager
+
+
+def _to_auth_kwargs(
+    app_id: Optional[str],
+    app_api_key: Optional[str],
+    app_key: Optional[str]
+) -> dict:
+    return {
+        "app_id": app_id,
+        "app_api_key": app_api_key,
+        "app_key": app_key,
+    }
 
 
 async def create_template(
     name: str,
     title: str,
     message: str,
+    app_id: Optional[str] = None,
+    app_api_key: Optional[str] = None,
+    app_key: Optional[str] = None,
     **kwargs
 ) -> Dict[str, Any]:
     """
@@ -19,12 +33,7 @@ async def create_template(
         message: Content/message of the template
         **kwargs: Additional template parameters
     """
-    app_config = app_manager.get_current_app()
-    if not app_config:
-        raise ValueError("No app currently selected")
-    
     data = {
-        "app_id": app_config.app_id,
         "name": name,
         "headings": {"en": title},
         "contents": {"en": message}
@@ -32,7 +41,12 @@ async def create_template(
     
     data.update(kwargs)
     
-    return await api_client.request("templates", method="POST", data=data)
+    return await api_client.request(
+        "templates",
+        method="POST",
+        data=data,
+        **_to_auth_kwargs(app_id, app_api_key, app_key)
+    )
 
 
 async def update_template(
@@ -40,6 +54,9 @@ async def update_template(
     name: Optional[str] = None,
     title: Optional[str] = None,
     message: Optional[str] = None,
+    app_id: Optional[str] = None,
+    app_api_key: Optional[str] = None,
+    app_key: Optional[str] = None,
     **kwargs
 ) -> Dict[str, Any]:
     """
@@ -69,35 +86,51 @@ async def update_template(
     return await api_client.request(
         f"templates/{template_id}",
         method="PATCH",
-        data=data
+        data=data,
+        **_to_auth_kwargs(app_id, app_api_key, app_key)
     )
 
 
-async def view_templates() -> Dict[str, Any]:
+async def view_templates(
+    app_id: Optional[str] = None,
+    app_api_key: Optional[str] = None,
+    app_key: Optional[str] = None
+) -> Dict[str, Any]:
     """List all templates available in your OneSignal app."""
-    return await api_client.request("templates", method="GET")
+    return await api_client.request(
+        "templates",
+        method="GET",
+        **_to_auth_kwargs(app_id, app_api_key, app_key)
+    )
 
 
-async def view_template_details(template_id: str) -> Dict[str, Any]:
+async def view_template_details(
+    template_id: str,
+    app_id: Optional[str] = None,
+    app_api_key: Optional[str] = None,
+    app_key: Optional[str] = None,
+) -> Dict[str, Any]:
     """
     Get detailed information about a specific template.
     
     Args:
         template_id: The ID of the template to retrieve
     """
-    app_config = app_manager.get_current_app()
-    if not app_config:
-        raise ValueError("No app currently selected")
-    
-    params = {"app_id": app_config.app_id}
+    params = {"app_id": app_id} if app_id else None
     return await api_client.request(
         f"templates/{template_id}",
         method="GET",
-        params=params
+        params=params,
+        **_to_auth_kwargs(app_id, app_api_key, app_key)
     )
 
 
-async def delete_template(template_id: str) -> Dict[str, Any]:
+async def delete_template(
+    template_id: str,
+    app_id: Optional[str] = None,
+    app_api_key: Optional[str] = None,
+    app_key: Optional[str] = None
+) -> Dict[str, Any]:
     """
     Delete a template from your OneSignal app.
     
@@ -106,14 +139,18 @@ async def delete_template(template_id: str) -> Dict[str, Any]:
     """
     return await api_client.request(
         f"templates/{template_id}",
-        method="DELETE"
+        method="DELETE",
+        **_to_auth_kwargs(app_id, app_api_key, app_key)
     )
 
 
 async def copy_template_to_app(
     template_id: str,
     target_app_id: str,
-    new_name: Optional[str] = None
+    new_name: Optional[str] = None,
+    app_id: Optional[str] = None,
+    app_api_key: Optional[str] = None,
+    app_key: Optional[str] = None
 ) -> Dict[str, Any]:
     """
     Copy a template to another OneSignal app.
@@ -131,7 +168,8 @@ async def copy_template_to_app(
     return await api_client.request(
         f"templates/{template_id}/copy",
         method="POST",
-        data=data
+        data=data,
+        **_to_auth_kwargs(app_id, app_api_key, app_key)
     )
 
 
@@ -167,4 +205,4 @@ def format_template_details(template: Dict[str, Any]) -> str:
         f"Created: {template.get('created_at')}"
     ]
     
-    return "\n".join(details) 
+    return "\n".join(details)

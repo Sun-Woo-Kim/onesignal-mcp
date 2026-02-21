@@ -1,7 +1,18 @@
 """Analytics and outcomes tools for OneSignal MCP server."""
 from typing import Dict, Any, Optional, List
 from ..api_client import api_client
-from ..config import app_manager
+
+
+def _to_auth_kwargs(
+    app_id: Optional[str],
+    app_api_key: Optional[str],
+    app_key: Optional[str]
+) -> dict:
+    return {
+        "app_id": app_id,
+        "app_api_key": app_api_key,
+        "app_key": app_key,
+    }
 
 
 async def view_outcomes(
@@ -9,6 +20,9 @@ async def view_outcomes(
     outcome_time_range: Optional[str] = None,
     outcome_platforms: Optional[List[str]] = None,
     outcome_attribution: Optional[str] = None,
+    app_id: Optional[str] = None,
+    app_api_key: Optional[str] = None,
+    app_key: Optional[str] = None,
     **kwargs
 ) -> Dict[str, Any]:
     """
@@ -21,9 +35,8 @@ async def view_outcomes(
         outcome_attribution: Attribution model ("direct" or "influenced")
         **kwargs: Additional parameters
     """
-    app_config = app_manager.get_current_app()
-    if not app_config:
-        raise ValueError("No app currently selected")
+    if not app_id:
+        raise ValueError("app_id is required for outcomes")
     
     params = {
         "outcome_names": outcome_names
@@ -39,9 +52,12 @@ async def view_outcomes(
     params.update(kwargs)
     
     return await api_client.request(
-        f"apps/{app_config.app_id}/outcomes",
+        f"apps/{app_id}/outcomes",
         method="GET",
-        params=params
+        params=params,
+        app_id=app_id,
+        app_api_key=app_api_key,
+        app_key=app_key
     )
 
 
@@ -134,4 +150,4 @@ def format_outcomes_response(outcomes: Dict[str, Any]) -> str:
         
         output += "\n"
     
-    return output 
+    return output

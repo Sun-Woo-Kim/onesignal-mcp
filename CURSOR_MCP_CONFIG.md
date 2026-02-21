@@ -16,16 +16,16 @@ Add the following to your Cursor MCP configuration file (`mcp.json`):
 
 ```json
 {
-  "mcpServers": {
-    "onesignal": {
-      "command": "/Users/sunwoo/project/onesignal-mcp/venv/bin/python",
-      "args": [
-        "/Users/sunwoo/project/onesignal-mcp/onesignal_server.py"
-      ],
-      "env": {
-        "LOG_LEVEL": "INFO"
-      }
-    }
+      "mcpServers": {
+        "onesignal": {
+          "command": "/Users/sunwoo/project/onesignal-mcp/venv/bin/python",
+          "args": [
+            "/Users/sunwoo/project/onesignal-mcp/onesignal_refactored/server.py"
+          ],
+          "env": {
+            "LOG_LEVEL": "INFO"
+          }
+        }
   }
 }
 ```
@@ -35,15 +35,15 @@ Or to use a relative path:
 ```json
 {
   "mcpServers": {
-    "onesignal": {
-      "command": "python",
-      "args": [
-        "/Users/sunwoo/project/onesignal-mcp/onesignal_server.py"
-      ],
-      "cwd": "/Users/sunwoo/project/onesignal-mcp",
-      "env": {
-        "LOG_LEVEL": "INFO",
-        "VIRTUAL_ENV": "/Users/sunwoo/project/onesignal-mcp/venv"
+        "onesignal": {
+          "command": "python",
+          "args": [
+            "/Users/sunwoo/project/onesignal-mcp/onesignal_refactored/server.py"
+          ],
+          "cwd": "/Users/sunwoo/project/onesignal-mcp",
+          "env": {
+            "LOG_LEVEL": "INFO",
+            "VIRTUAL_ENV": "/Users/sunwoo/project/onesignal-mcp/venv"
       }
     }
   }
@@ -55,9 +55,12 @@ Or to use a relative path:
 To use the OneSignal API, create a `.env` file in the project root:
 
 ```env
-ONESIGNAL_APP_ID=your_app_id
-ONESIGNAL_API_KEY=your_api_key
-ONESIGNAL_ORG_API_KEY=your_org_api_key  # Optional
+# Optional legacy fallback for app-scoped calls
+# ONESIGNAL_APP_ID=your_app_id
+# ONESIGNAL_API_KEY=your_api_key
+
+# Organization API key for discover_apps and organization-level operations
+ONESIGNAL_ORG_API_KEY=your_org_api_key
 LOG_LEVEL=INFO
 ```
 
@@ -78,6 +81,5 @@ Then it will be accessible at `http://localhost:8000`.
 1. Restart Cursor
 2. Check if the MCP server is connected in Cursor
 3. Verify that OneSignal-related tools are available
-
 
 
