@@ -57,9 +57,10 @@ if ! systemctl status "${SERVICE_NAME}" --no-pager; then
 fi
 
 echo "[2/5] Import check"
-if [ -f .venv/bin/activate ]; then
-  source .venv/bin/activate
-  if ! python -c "from onesignal_refactored.server import mcp; print('onesignal_refactored.server import ok')"; then
+PYTHON_BIN="${APP_DIR}/.venv/bin/python"
+
+if [ -x "$PYTHON_BIN" ]; then
+  if ! "$PYTHON_BIN" -c "from onesignal_refactored.server import mcp; print('onesignal_refactored.server import ok')"; then
     echo "[ERROR] Python import failed"
     echo "--- Last 120 lines of service log ---"
     journalctl -u "${SERVICE_NAME}" -n 120 --no-pager
