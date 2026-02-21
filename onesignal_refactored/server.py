@@ -61,12 +61,16 @@ def _auth_kwargs(
     app_key: str = None,
     org_api_key: str = None
 ) -> dict:
-    return {
-        "app_id": app_id,
-        "app_api_key": app_api_key,
-        "app_key": app_key,
-        "org_api_key": org_api_key,
-    }
+    kwargs = {}
+    if app_id is not None:
+        kwargs["app_id"] = app_id
+    if app_api_key is not None:
+        kwargs["app_api_key"] = app_api_key
+    if app_key is not None:
+        kwargs["app_key"] = app_key
+    if org_api_key is not None:
+        kwargs["org_api_key"] = org_api_key
+    return kwargs
 
 
 # === Configuration Resource ===
@@ -132,14 +136,23 @@ async def discover_apps(
             use_org_key=True,
             org_api_key=org_api_key
         )
-        apps = response.get("apps") or response.get("rows") or []
+        if isinstance(response, list):
+            apps = response
+        elif isinstance(response, dict):
+            apps = response.get("apps") or response.get("rows") or []
+        else:
+            apps = []
         if not apps:
             return "No apps found for this organization credential."
         lines = ["Discovered Apps:"]
         for app in apps:
-            app_id = app.get("id", "N/A")
-            name = app.get("name", "Unnamed")
-            lines.append(f"- {name} ({app_id})")
+            if isinstance(app, dict):
+                app_id = app.get("id", "N/A")
+                name = app.get("name", "Unnamed")
+                players = app.get("players", "?")
+                lines.append(f"- {name} (ID: {app_id}, Players: {players})")
+            else:
+                lines.append(f"- {app}")
         return "\n".join(lines)
     except OneSignalAPIError as e:
         return f"Error: {str(e)}"
@@ -302,19 +315,35 @@ async def view_messages(
 
 
 @mcp.tool()
-async def view_message_details(message_id: str) -> dict:
+async def view_message_details(
+    message_id: str,
+    app_id: str = None,
+    app_api_key: str = None,
+    app_key: str = None
+) -> dict:
     """Get detailed information about a specific message."""
     try:
-        return await messages.view_message_details(message_id)
+        return await messages.view_message_details(
+            message_id,
+            **_auth_kwargs(app_id=app_id, app_api_key=app_api_key, app_key=app_key)
+        )
     except OneSignalAPIError as e:
         return {"error": str(e)}
 
 
 @mcp.tool()
-async def cancel_message(message_id: str) -> dict:
+async def cancel_message(
+    message_id: str,
+    app_id: str = None,
+    app_api_key: str = None,
+    app_key: str = None
+) -> dict:
     """Cancel a scheduled message."""
     try:
-        return await messages.cancel_message(message_id)
+        return await messages.cancel_message(
+            message_id,
+            **_auth_kwargs(app_id=app_id, app_api_key=app_api_key, app_key=app_key)
+        )
     except OneSignalAPIError as e:
         return {"error": str(e)}
 

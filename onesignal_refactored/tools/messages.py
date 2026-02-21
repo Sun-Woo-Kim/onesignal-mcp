@@ -3,16 +3,8 @@ from typing import List, Dict, Any, Optional
 from ..api_client import api_client, OneSignalAPIError
 
 
-def _to_auth_kwargs(
-    app_id: Optional[str],
-    app_api_key: Optional[str],
-    app_key: Optional[str]
-) -> dict:
-    return {
-        "app_id": app_id,
-        "app_api_key": app_api_key,
-        "app_key": app_key,
-    }
+def _to_auth_kwargs(**kwargs) -> dict:
+    return {k: v for k, v in kwargs.items() if v is not None}
 
 
 async def send_push_notification(
@@ -64,7 +56,7 @@ async def send_push_notification(
         "notifications",
         method="POST",
         data=notification_data,
-        **_to_auth_kwargs(app_id, app_api_key, app_key)
+        **_to_auth_kwargs(app_id=app_id, app_api_key=app_api_key, app_key=app_key)
     )
 
 
@@ -118,7 +110,7 @@ async def send_email(
         "notifications",
         method="POST",
         data=email_data,
-        **_to_auth_kwargs(app_id, app_api_key, app_key)
+        **_to_auth_kwargs(app_id=app_id, app_api_key=app_api_key, app_key=app_key)
     )
 
 
@@ -169,7 +161,7 @@ async def send_sms(
         "notifications",
         method="POST",
         data=sms_data,
-        **_to_auth_kwargs(app_id, app_api_key, app_key)
+        **_to_auth_kwargs(app_id=app_id, app_api_key=app_api_key, app_key=app_key)
     )
 
 
@@ -220,7 +212,7 @@ async def send_transactional_message(
         "notifications",
         method="POST",
         data=message_data,
-        **_to_auth_kwargs(app_id, app_api_key, app_key)
+        **_to_auth_kwargs(app_id=app_id, app_api_key=app_api_key, app_key=app_key)
     )
 
 
@@ -248,18 +240,36 @@ async def view_messages(
         "notifications",
         method="GET",
         params=params,
-        **_to_auth_kwargs(app_id, app_api_key, app_key)
+        **_to_auth_kwargs(app_id=app_id, app_api_key=app_api_key, app_key=app_key)
     )
 
 
-async def view_message_details(message_id: str) -> Dict[str, Any]:
+async def view_message_details(
+    message_id: str,
+    app_id: Optional[str] = None,
+    app_api_key: Optional[str] = None,
+    app_key: Optional[str] = None
+) -> Dict[str, Any]:
     """Get detailed information about a specific message."""
-    return await api_client.request(f"notifications/{message_id}", method="GET")
+    return await api_client.request(
+        f"notifications/{message_id}",
+        method="GET",
+        **_to_auth_kwargs(app_id=app_id, app_api_key=app_api_key, app_key=app_key)
+    )
 
 
-async def cancel_message(message_id: str) -> Dict[str, Any]:
+async def cancel_message(
+    message_id: str,
+    app_id: Optional[str] = None,
+    app_api_key: Optional[str] = None,
+    app_key: Optional[str] = None
+) -> Dict[str, Any]:
     """Cancel a scheduled message that hasn't been delivered yet."""
-    return await api_client.request(f"notifications/{message_id}", method="DELETE")
+    return await api_client.request(
+        f"notifications/{message_id}",
+        method="DELETE",
+        **_to_auth_kwargs(app_id=app_id, app_api_key=app_api_key, app_key=app_key)
+    )
 
 
 async def view_message_history(
@@ -289,7 +299,7 @@ async def view_message_history(
         f"notifications/{message_id}/history",
         method="POST",
         data=data,
-        **_to_auth_kwargs(app_id, app_api_key, app_key)
+        **_to_auth_kwargs(app_id=app_id, app_api_key=app_api_key, app_key=app_key)
     )
 
 

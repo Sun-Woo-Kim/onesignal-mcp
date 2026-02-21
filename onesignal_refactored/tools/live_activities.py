@@ -3,16 +3,8 @@ from typing import Dict, Any, Optional
 from ..api_client import api_client
 
 
-def _to_auth_kwargs(
-    app_id: Optional[str],
-    app_api_key: Optional[str],
-    app_key: Optional[str]
-) -> dict:
-    return {
-        "app_id": app_id,
-        "app_api_key": app_api_key,
-        "app_key": app_key,
-    }
+def _to_auth_kwargs(**kwargs) -> dict:
+    return {k: v for k, v in kwargs.items() if v is not None}
 
 
 async def start_live_activity(
@@ -51,7 +43,7 @@ async def start_live_activity(
         f"live_activities/{activity_id}/start",
         method="POST",
         data=data,
-        **_to_auth_kwargs(app_id, app_api_key, app_key)
+        **_to_auth_kwargs(app_id=app_id, app_api_key=app_api_key, app_key=app_key)
     )
 
 
@@ -100,7 +92,7 @@ async def update_live_activity(
         f"live_activities/{activity_id}/update",
         method="POST",
         data=data,
-        **_to_auth_kwargs(app_id, app_api_key, app_key)
+        **_to_auth_kwargs(app_id=app_id, app_api_key=app_api_key, app_key=app_key)
     )
 
 
@@ -140,7 +132,7 @@ async def end_live_activity(
         f"live_activities/{activity_id}/end",
         method="POST",
         data=data,
-        **_to_auth_kwargs(app_id, app_api_key, app_key)
+        **_to_auth_kwargs(app_id=app_id, app_api_key=app_api_key, app_key=app_key)
     )
 
 
@@ -164,5 +156,5 @@ async def get_live_activity_status(
         f"live_activities/{activity_id}/status",
         method="GET",
         params=params,
-        **_to_auth_kwargs(app_id, app_api_key, app_key)
+        **_to_auth_kwargs(app_id=app_id, app_api_key=app_api_key, app_key=app_key)
     ) 

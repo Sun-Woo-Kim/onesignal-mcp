@@ -3,16 +3,8 @@ from typing import Dict, Any, Optional, List
 from ..api_client import api_client
 
 
-def _to_auth_kwargs(
-    app_id: Optional[str],
-    app_api_key: Optional[str],
-    app_key: Optional[str]
-) -> dict:
-    return {
-        "app_id": app_id,
-        "app_api_key": app_api_key,
-        "app_key": app_key,
-    }
+def _to_auth_kwargs(**kwargs) -> dict:
+    return {k: v for k, v in kwargs.items() if v is not None}
 
 
 async def view_outcomes(

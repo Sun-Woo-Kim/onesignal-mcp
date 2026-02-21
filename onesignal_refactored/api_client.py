@@ -42,7 +42,7 @@ class OneSignalAPIClient:
         app_id: Optional[str] = None,
         app_api_key: Optional[str] = None,
         org_api_key: Optional[str] = None
-    ) -> Dict[str, Any]:
+    ) -> Any:
         """
         Make a request to the OneSignal API.
         
@@ -103,7 +103,10 @@ class OneSignalAPIClient:
             response = self._make_request(method, url, headers, params, data)
             response.raise_for_status()
             
-            return response.json() if response.text else {}
+            if not response.text:
+                return {}
+            parsed = response.json()
+            return parsed
             
         except requests.exceptions.HTTPError as e:
             error_message = self._extract_error_message(e)

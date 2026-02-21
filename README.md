@@ -24,10 +24,10 @@ This MCP server provides comprehensive access to the [OneSignal REST API](https:
 
 ## Requirements
 
-- Python 3.7 or higher
-- `python-dotenv` package
+- Python 3.10 or higher (3.11+ recommended)
 - `requests` package
-- `mcp` package
+- `mcp` package (requires Python 3.10+ for `match` statements and `X | Y` union types)
+- `uvicorn` package
 - OneSignal account with API credentials
 
 ## Installation
@@ -296,14 +296,12 @@ export = await export_players_csv(
 
 ## Testing
 
-The server includes a comprehensive test suite. To run tests:
-
 ```bash
-# Run the test script
-python test_onesignal_mcp.py
+# Health check (local)
+bash scripts/test.sh
 
-# Or use unittest
-python -m unittest discover tests
+# Health check (remote)
+PUBLIC_HOST=3.34.235.194 bash scripts/test.sh
 ```
 
 ## Error Handling

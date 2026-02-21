@@ -3,16 +3,8 @@ from typing import Dict, Any, Optional
 from ..api_client import api_client
 
 
-def _to_auth_kwargs(
-    app_id: Optional[str],
-    app_api_key: Optional[str],
-    app_key: Optional[str]
-) -> dict:
-    return {
-        "app_id": app_id,
-        "app_api_key": app_api_key,
-        "app_key": app_key,
-    }
+def _to_auth_kwargs(**kwargs) -> dict:
+    return {k: v for k, v in kwargs.items() if v is not None}
 
 
 async def create_template(
@@ -45,7 +37,7 @@ async def create_template(
         "templates",
         method="POST",
         data=data,
-        **_to_auth_kwargs(app_id, app_api_key, app_key)
+        **_to_auth_kwargs(app_id=app_id, app_api_key=app_api_key, app_key=app_key)
     )
 
 
@@ -87,7 +79,7 @@ async def update_template(
         f"templates/{template_id}",
         method="PATCH",
         data=data,
-        **_to_auth_kwargs(app_id, app_api_key, app_key)
+        **_to_auth_kwargs(app_id=app_id, app_api_key=app_api_key, app_key=app_key)
     )
 
 
@@ -100,7 +92,7 @@ async def view_templates(
     return await api_client.request(
         "templates",
         method="GET",
-        **_to_auth_kwargs(app_id, app_api_key, app_key)
+        **_to_auth_kwargs(app_id=app_id, app_api_key=app_api_key, app_key=app_key)
     )
 
 
@@ -121,7 +113,7 @@ async def view_template_details(
         f"templates/{template_id}",
         method="GET",
         params=params,
-        **_to_auth_kwargs(app_id, app_api_key, app_key)
+        **_to_auth_kwargs(app_id=app_id, app_api_key=app_api_key, app_key=app_key)
     )
 
 
@@ -140,7 +132,7 @@ async def delete_template(
     return await api_client.request(
         f"templates/{template_id}",
         method="DELETE",
-        **_to_auth_kwargs(app_id, app_api_key, app_key)
+        **_to_auth_kwargs(app_id=app_id, app_api_key=app_api_key, app_key=app_key)
     )
 
 
@@ -169,7 +161,7 @@ async def copy_template_to_app(
         f"templates/{template_id}/copy",
         method="POST",
         data=data,
-        **_to_auth_kwargs(app_id, app_api_key, app_key)
+        **_to_auth_kwargs(app_id=app_id, app_api_key=app_api_key, app_key=app_key)
     )
 
 
