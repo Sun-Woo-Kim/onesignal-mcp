@@ -50,9 +50,44 @@ source .venv/bin/activate
 echo "[4/6] Create HTTP entrypoint"
 cat > "$APP_DIR/run_http.py" <<PY
 from onesignal_refactored.server import mcp
+import inspect
+
+
+def _run():
+    sig = inspect.signature(mcp.run)
+    has_host = "host" in sig.parameters
+    has_port = "port" in sig.parameters
+    has_transport = "transport" in sig.parameters
+
+    candidates = []
+
+    if has_transport and has_host and has_port:
+        candidates.append({"transport": "streamable-http", "host": "0.0.0.0", "port": ${PORT}})
+    if has_transport:
+        candidates.append({"transport": "streamable-http"})
+    candidates.append({"transport": "streamable-http"})
+    candidates.append({})
+    if not has_transport:
+        # Older signatures may still accept positional transport argument.
+        candidates.append(("streamable-http",))
+
+    last_error = None
+    for candidate in candidates:
+        try:
+            if isinstance(candidate, tuple):
+                mcp.run(*candidate)
+            else:
+                mcp.run(**candidate)
+            return
+        except TypeError as exc:
+            last_error = exc
+            continue
+
+    raise RuntimeError("Unable to start FastMCP with available run() signatures.") from last_error
+
 
 if __name__ == "__main__":
-    mcp.run(transport="streamable-http", host="0.0.0.0", port=${PORT})
+    _run()
 PY
 
 echo "[5/6] Ensure .env exists"
