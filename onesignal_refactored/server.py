@@ -32,11 +32,26 @@ if log_level_str not in valid_log_levels:
 logger.setLevel(log_level_str)
 
 # Initialize MCP server (compatible with both old and new FastMCP signatures)
+host = os.getenv("MCP_HOST", "0.0.0.0")
+port = int(os.getenv("PORT", "8000"))
+
 try:
-    mcp = FastMCP("onesignal-server", log_level=log_level_str)
+    mcp = FastMCP(
+        "onesignal-server",
+        log_level=log_level_str,
+        host=host,
+        port=port,
+    )
 except TypeError:
-    logger.debug("FastMCP does not accept log_level argument; using default signature.")
-    mcp = FastMCP("onesignal-server")
+    try:
+        mcp = FastMCP("onesignal-server", host=host, port=port)
+    except TypeError:
+        logger.debug("FastMCP does not accept host/port/log_level args; using legacy signature.")
+        try:
+            mcp = FastMCP("onesignal-server", log_level=log_level_str)
+        except TypeError:
+            logger.debug("FastMCP does not accept log_level; using default signature.")
+            mcp = FastMCP("onesignal-server")
 logger.info(f"OneSignal MCP server v{__version__} initialized")
 
 

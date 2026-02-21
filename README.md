@@ -84,20 +84,33 @@ python -m onesignal_refactored
 The server will start and register itself with the MCP system without requiring app credentials at startup.
 Use `discover_apps` and pass `app_id` + `app_api_key` into the tool that needs them.
 
-### Lightsail deployment scripts
+### Deployment (스크립트 전용)
 
 ```bash
-# first time deployment (clone + install)
-bash scripts/lightsail-bootstrap.sh
+# 1) 첫 배포 (처음 설치)
+git clone -b master https://github.com/Sun-Woo-Kim/onesignal-mcp.git /opt/onesignal-mcp
+cd /opt/onesignal-mcp
+PUBLIC_HOST=3.34.235.194 bash scripts/deploy.sh
 
-# when repo already cloned and only install/update is needed
+# 2) 코드 변경 후 업데이트/재배포 (원격 master 기준, 내부 pull + install + test 자동)
+cd /opt/onesignal-mcp
+PUBLIC_HOST=3.34.235.194 bash scripts/deploy.sh
+
+# 3) 외부 체크만 분리해서 다시 보고 싶을 때
+PUBLIC_HOST=3.34.235.194 bash scripts/test.sh
+
+# 4) 포트만 바꾸고 배포할 때
+PORT=9000 PUBLIC_HOST=3.34.235.194 bash scripts/deploy.sh
+
+# 5) 단순 의존성 반영(설치만)
 bash scripts/install.sh
 
-# health check after deploy
+# 6) 헬스체크만
 bash scripts/test.sh
 ```
 
-`lightsail-bootstrap.sh` does: clone (if needed) → install dependencies → configure service → start MCP → run test script.
+`deploy.sh`는 업데이트/재배포 기준 동작입니다.  
+초기 설치는 클론 후 `deploy.sh`를 한 번 실행하면 됩니다.
 
 ## MCP usage flow (new)
 
