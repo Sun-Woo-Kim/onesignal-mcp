@@ -79,7 +79,7 @@ class OneSignalAPIClient:
             if not org_key:
                 raise OneSignalAPIError(
                     "Organization API Key not configured. "
-                    "Set the ONESIGNAL_ORG_API_KEY environment variable."
+                    "Inject org_api_key per tool call or set ONESIGNAL_ORG_API_KEY."
                 )
             headers["Authorization"] = f"Basic {org_key}"
         else:

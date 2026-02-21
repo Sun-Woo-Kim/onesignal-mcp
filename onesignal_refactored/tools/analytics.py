@@ -65,6 +65,7 @@ async def export_players_csv(
     start_date: Optional[str] = None,
     end_date: Optional[str] = None,
     segment_names: Optional[List[str]] = None,
+    org_api_key: Optional[str] = None,
     **kwargs
 ) -> Dict[str, Any]:
     """
@@ -91,7 +92,8 @@ async def export_players_csv(
         "players/csv_export",
         method="POST",
         data=data,
-        use_org_key=True
+        use_org_key=True,
+        org_api_key=org_api_key
     )
 
 
@@ -99,6 +101,7 @@ async def export_audience_activity_csv(
     start_date: Optional[str] = None,
     end_date: Optional[str] = None,
     event_types: Optional[List[str]] = None,
+    org_api_key: Optional[str] = None,
     **kwargs
 ) -> Dict[str, Any]:
     """
@@ -125,7 +128,8 @@ async def export_audience_activity_csv(
         "notifications/csv_export",
         method="POST",
         data=data,
-        use_org_key=True
+        use_org_key=True,
+        org_api_key=org_api_key
     )
 
 

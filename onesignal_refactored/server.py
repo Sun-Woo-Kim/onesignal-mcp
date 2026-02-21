@@ -322,12 +322,17 @@ async def view_message_history(
 
 
 @mcp.tool()
-async def export_messages_csv(start_date: str = None, end_date: str = None) -> dict:
+async def export_messages_csv(
+    start_date: str = None,
+    end_date: str = None,
+    org_api_key: str = None
+) -> dict:
     """Export messages to CSV (requires Organization API Key)."""
     try:
         return await messages.export_messages_csv(
             start_date=start_date,
-            end_date=end_date
+            end_date=end_date,
+            org_api_key=org_api_key
         )
     except OneSignalAPIError as e:
         return {"error": str(e)}
@@ -569,14 +574,16 @@ async def view_outcomes(
 async def export_players_csv(
     start_date: str = None,
     end_date: str = None,
-    segment_names: list = None
+    segment_names: list = None,
+    org_api_key: str = None
 ) -> dict:
     """Export player data to CSV (requires Organization API Key)."""
     try:
         return await analytics.export_players_csv(
             start_date=start_date,
             end_date=end_date,
-            segment_names=segment_names
+            segment_names=segment_names,
+            org_api_key=org_api_key
         )
     except OneSignalAPIError as e:
         return {"error": str(e)}
@@ -586,14 +593,16 @@ async def export_players_csv(
 async def export_audience_activity_csv(
     start_date: str = None,
     end_date: str = None,
-    event_types: list = None
+    event_types: list = None,
+    org_api_key: str = None
 ) -> dict:
     """Export audience activity to CSV (requires Organization API Key)."""
     try:
         return await analytics.export_audience_activity_csv(
             start_date=start_date,
             end_date=end_date,
-            event_types=event_types
+            event_types=event_types,
+            org_api_key=org_api_key
         )
     except OneSignalAPIError as e:
         return {"error": str(e)}
