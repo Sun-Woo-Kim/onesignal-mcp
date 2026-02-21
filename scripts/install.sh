@@ -7,12 +7,57 @@ APP_DIR="${APP_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
 SERVICE_NAME="${SERVICE_NAME:-onesignal-mcp}"
 PORT="${PORT:-8000}"
 RUN_USER="${RUN_USER:-ec2-user}"
+HAS_ROOT=0
+SUDO_CMD=""
 
 cd "$APP_DIR"
 
+is_root_capable() {
+  if [ "${EUID:-$(id -u)}" -eq 0 ]; then
+    HAS_ROOT=1
+    return 0
+  fi
+
+  if command -v sudo >/dev/null 2>&1 && sudo -n true >/dev/null 2>&1; then
+    HAS_ROOT=1
+    SUDO_CMD="sudo"
+    return 0
+  fi
+
+  HAS_ROOT=0
+  return 1
+}
+
+run_root() {
+  local label="$1"
+  shift
+
+  if [ "$HAS_ROOT" -ne 1 ]; then
+    echo "[WARN] No root access for ${label}. Skipping: $*"
+    return 1
+  fi
+
+  if [ -n "$SUDO_CMD" ]; then
+    "$SUDO_CMD" "$@"
+  else
+    "$@"
+  fi
+}
+
+require_root() {
+  local label="$1"
+  if [ "$HAS_ROOT" -ne 1 ]; then
+    echo "[WARN] No privilege for ${label}. Run this script with sudo or as root."
+    return 1
+  fi
+  return 0
+}
+
+is_root_capable
+
 echo "[1/6] Install base packages"
 if command -v yum >/dev/null 2>&1; then
-  sudo yum install -y python3 git
+  run_root "base package install" yum install -y python3 git || true
 else
   echo "[WARN] yum not found. Please make sure Python 3 and git are available."
 fi
@@ -194,16 +239,28 @@ fi
 ensure_var() {
   local key="$1"
   local value="$2"
-  if ! grep -Eq "^${key}=" "$APP_DIR/.env"; then
-    printf "%s=%s\n" "$key" "$value" >> "$APP_DIR/.env"
-  fi
+  local tmp
+  tmp="$(mktemp)"
+  awk -v k="$key" -v v="$value" 'BEGIN{found=0}
+    $0 ~ ("^[[:space:]]*" k "=") {
+      print k "=" v
+      if (!found) found=1
+      next
+    }
+    {print}
+    END {
+      if (!found) print k "=" v
+    }' "$APP_DIR/.env" > "$tmp"
+  mv "$tmp" "$APP_DIR/.env"
 }
 
 ensure_var MCP_HOST 0.0.0.0
 ensure_var PORT ${PORT}
 
 echo "[6/6] Register systemd service"
-sudo tee "/etc/systemd/system/${SERVICE_NAME}.service" > /dev/null <<SERVICE
+if require_root "systemd registration"; then
+  SERVICE_TMP_FILE="${APP_DIR}/.tmp.${SERVICE_NAME}.service"
+  cat > "$SERVICE_TMP_FILE" <<SERVICE
 [Unit]
 Description=OneSignal MCP Server
 After=network.target
@@ -221,9 +278,32 @@ RestartSec=3
 WantedBy=multi-user.target
 SERVICE
 
-sudo systemctl daemon-reload
-sudo systemctl enable "${SERVICE_NAME}"
-sudo systemctl restart "${SERVICE_NAME}"
+  if ! run_root "install unit file" cp "$SERVICE_TMP_FILE" "/etc/systemd/system/${SERVICE_NAME}.service"; then
+    echo "[WARN] Failed to write /etc/systemd/system/${SERVICE_NAME}.service."
+    echo "       sudo cp ${SERVICE_TMP_FILE} /etc/systemd/system/${SERVICE_NAME}.service"
+    rm -f "$SERVICE_TMP_FILE"
+    exit 1
+  fi
+  rm -f "$SERVICE_TMP_FILE"
+
+  if ! run_root "systemctl daemon-reload" systemctl daemon-reload; then
+    echo "[WARN] Failed to run systemctl daemon-reload (service restart may fail)."
+  fi
+
+  if ! run_root "systemctl enable" systemctl enable "${SERVICE_NAME}"; then
+    echo "[WARN] Failed to enable service."
+  fi
+
+  if ! run_root "systemctl restart" systemctl restart "${SERVICE_NAME}"; then
+    echo "[WARN] Failed to restart service (permission issue or transient runtime error)."
+    echo "       sudo systemctl daemon-reload && sudo systemctl enable ${SERVICE_NAME} && sudo systemctl restart ${SERVICE_NAME}"
+  fi
+else
+  echo "[WARN] systemd steps skipped."
+  echo "[INFO] Manual service setup required:"
+  echo "  sudo tee /etc/systemd/system/${SERVICE_NAME}.service > /dev/null <<'SERVICE'"
+  echo "  ... (run install.sh with sudo/root once to write and enable service)"
+fi
 
 echo
 echo "Install complete."

@@ -7,12 +7,53 @@ APP_DIR="${APP_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
 SERVICE_NAME="${SERVICE_NAME:-onesignal-mcp}"
 PORT="${PORT:-8000}"
 PUBLIC_HOST="${PUBLIC_HOST:-}"
+HAS_ROOT=0
+SUDO_CMD=""
 
 cd "$APP_DIR"
 
+is_root_capable() {
+  if [ "${EUID:-$(id -u)}" -eq 0 ]; then
+    HAS_ROOT=1
+    SUDO_CMD=""
+    return 0
+  fi
+
+  if command -v sudo >/dev/null 2>&1 && sudo -n true >/dev/null 2>&1; then
+    HAS_ROOT=1
+    SUDO_CMD="sudo"
+    return 0
+  fi
+
+  HAS_ROOT=0
+  return 1
+}
+
+run_root() {
+  local cmd_name="$1"
+  shift
+
+  if [ "$HAS_ROOT" -ne 1 ]; then
+    echo "[WARN] No privilege for ${cmd_name}. Run with sudo for full diagnostics."
+    return 1
+  fi
+
+  if [ -n "$SUDO_CMD" ]; then
+    "$SUDO_CMD" "$@"
+  else
+    "$@"
+  fi
+}
+
+is_root_capable
+
 echo "[1/5] Service status"
-if ! sudo systemctl status "${SERVICE_NAME}" --no-pager; then
-  echo "[WARN] systemctl requires sudo privileges. Check via: sudo systemctl status ${SERVICE_NAME}"
+if ! systemctl status "${SERVICE_NAME}" --no-pager; then
+  if [ "$HAS_ROOT" -eq 1 ]; then
+    run_root "systemctl status" systemctl status "${SERVICE_NAME}" --no-pager
+  else
+    echo "[WARN] systemctl status might be hidden due permissions. Re-run with sudo to inspect details."
+  fi
 fi
 
 echo "[2/5] Import check"
@@ -48,7 +89,7 @@ finally:
 PY
 
 echo "[3.5/5] Socket bind check (0.0.0.0:${PORT})"
-if ss -lntp | grep -E "0.0.0.0:${PORT}|\\*: ${PORT}" >/dev/null 2>&1; then
+if ss -lntp | grep -E "0.0.0.0:${PORT}|\\*: ${PORT}|\\*: ${PORT}$|\\*: [[:space:]]*${PORT}" >/dev/null 2>&1; then
   echo "Service is bound to 0.0.0.0 for external access."
 else
   echo "[WARN] Service is not bound to 0.0.0.0:${PORT}. This blocks external access."
@@ -62,7 +103,9 @@ if [ -n "${PUBLIC_HOST}" ]; then
     echo "[ERROR] Public endpoint check failed: http://${PUBLIC_HOST}:${PORT}/sse"
     echo "Check Lightsail firewall (TCP ${PORT}) and server bind host."
     echo "--- Last 120 lines of service log ---"
-    journalctl -u "${SERVICE_NAME}" -n 120 --no-pager
+    if ! journalctl -u "${SERVICE_NAME}" -n 120 --no-pager; then
+      echo "[WARN] journalctl access denied. Run with sudo to inspect logs."
+    fi
     exit 1
   fi
 else
